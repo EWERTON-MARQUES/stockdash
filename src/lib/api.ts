@@ -90,7 +90,7 @@ class ApiService {
     };
   }
 
-  async getProducts(page: number = 1, limit: number = 100): Promise<Product[]> {
+  async getProducts(page: number = 1, limit: number = 50, search: string = ''): Promise<Product[]> {
     const config = this.getConfig();
     
     if (!config?.baseUrl || !config?.token) {
@@ -98,24 +98,10 @@ class ApiService {
     }
 
     try {
-      // Try different endpoint patterns commonly used by APIs
-      let data;
-      
-      // Try with pagination parameters
-      try {
-        data = await this.fetchWithAuth(`/catalog/products?page=${page}&limit=${limit}`);
-      } catch (e1) {
-        try {
-          data = await this.fetchWithAuth(`/catalog/products?per_page=${limit}&page=${page}`);
-        } catch (e2) {
-          try {
-            data = await this.fetchWithAuth(`/products?page=${page}&limit=${limit}`);
-          } catch (e3) {
-            // Try the list endpoint
-            data = await this.fetchWithAuth(`/catalog/products/list?page=${page}&limit=${limit}`);
-          }
-        }
-      }
+      const offset = (page - 1) * limit;
+      const data = await this.fetchWithAuth(
+        `/catalog?limit=${limit}&offset=${offset}&page=${page}&search=${encodeURIComponent(search)}&categoryId=0&suplierId=&brand=&orderBy=id%7Cdesc`
+      );
       
       // Handle different response formats
       let products: any[] = [];
