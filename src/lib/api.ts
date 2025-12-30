@@ -1,191 +1,6 @@
 import { Product, StockMovement, DashboardStats, ApiConfig } from './types';
 
-// Mock data for demonstration
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    sku: 'SKU-001',
-    name: 'Notebook Dell Inspiron 15',
-    description: 'Notebook Dell Inspiron 15 polegadas, Intel Core i5, 8GB RAM, 256GB SSD',
-    category: 'Eletrônicos',
-    price: 3499.99,
-    costPrice: 2800.00,
-    stock: 45,
-    minStock: 10,
-    unit: 'un',
-    status: 'active',
-    supplier: 'Dell Brasil',
-    barcode: '7891234567890',
-    weight: 2.1,
-    dimensions: '36 x 24 x 2 cm',
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-12-28T14:30:00Z',
-  },
-  {
-    id: '2',
-    sku: 'SKU-002',
-    name: 'Mouse Logitech MX Master 3',
-    description: 'Mouse sem fio ergonômico com sensor de alta precisão',
-    category: 'Periféricos',
-    price: 599.99,
-    costPrice: 420.00,
-    stock: 3,
-    minStock: 15,
-    unit: 'un',
-    status: 'low_stock',
-    supplier: 'Logitech',
-    barcode: '7891234567891',
-    weight: 0.14,
-    dimensions: '12 x 8 x 5 cm',
-    createdAt: '2024-02-20T09:00:00Z',
-    updatedAt: '2024-12-27T11:00:00Z',
-  },
-  {
-    id: '3',
-    sku: 'SKU-003',
-    name: 'Monitor Samsung 27" 4K',
-    description: 'Monitor Samsung 27 polegadas, resolução 4K UHD, painel IPS',
-    category: 'Monitores',
-    price: 2199.99,
-    costPrice: 1750.00,
-    stock: 0,
-    minStock: 5,
-    unit: 'un',
-    status: 'out_of_stock',
-    supplier: 'Samsung',
-    barcode: '7891234567892',
-    weight: 5.2,
-    dimensions: '62 x 45 x 18 cm',
-    createdAt: '2024-03-10T14:00:00Z',
-    updatedAt: '2024-12-26T16:45:00Z',
-  },
-  {
-    id: '4',
-    sku: 'SKU-004',
-    name: 'Teclado Mecânico Keychron K2',
-    description: 'Teclado mecânico wireless 75%, switches Gateron Brown',
-    category: 'Periféricos',
-    price: 449.99,
-    costPrice: 320.00,
-    stock: 28,
-    minStock: 10,
-    unit: 'un',
-    status: 'active',
-    supplier: 'Keychron',
-    barcode: '7891234567893',
-    weight: 0.68,
-    dimensions: '31 x 12 x 4 cm',
-    createdAt: '2024-04-05T11:30:00Z',
-    updatedAt: '2024-12-28T09:15:00Z',
-  },
-  {
-    id: '5',
-    sku: 'SKU-005',
-    name: 'Webcam Logitech C920',
-    description: 'Webcam Full HD 1080p com microfone estéreo',
-    category: 'Periféricos',
-    price: 399.99,
-    costPrice: 280.00,
-    stock: 52,
-    minStock: 20,
-    unit: 'un',
-    status: 'active',
-    supplier: 'Logitech',
-    barcode: '7891234567894',
-    weight: 0.16,
-    dimensions: '9 x 7 x 4 cm',
-    createdAt: '2024-05-12T08:00:00Z',
-    updatedAt: '2024-12-25T13:20:00Z',
-  },
-  {
-    id: '6',
-    sku: 'SKU-006',
-    name: 'SSD Samsung 1TB NVMe',
-    description: 'SSD NVMe M.2 Samsung 980 Pro, 1TB, leitura 7000MB/s',
-    category: 'Armazenamento',
-    price: 899.99,
-    costPrice: 650.00,
-    stock: 67,
-    minStock: 25,
-    unit: 'un',
-    status: 'active',
-    supplier: 'Samsung',
-    barcode: '7891234567895',
-    weight: 0.01,
-    dimensions: '8 x 2.2 x 0.2 cm',
-    createdAt: '2024-06-18T16:00:00Z',
-    updatedAt: '2024-12-28T10:00:00Z',
-  },
-];
-
-const mockMovements: StockMovement[] = [
-  {
-    id: 'm1',
-    productId: '1',
-    type: 'entry',
-    quantity: 20,
-    previousStock: 25,
-    newStock: 45,
-    reason: 'Reposição de estoque',
-    reference: 'NF-2024-001234',
-    userId: 'u1',
-    userName: 'João Silva',
-    createdAt: '2024-12-28T14:30:00Z',
-  },
-  {
-    id: 'm2',
-    productId: '1',
-    type: 'exit',
-    quantity: 5,
-    previousStock: 30,
-    newStock: 25,
-    reason: 'Venda',
-    reference: 'PED-2024-005678',
-    userId: 'u2',
-    userName: 'Maria Santos',
-    createdAt: '2024-12-27T11:15:00Z',
-  },
-  {
-    id: 'm3',
-    productId: '2',
-    type: 'exit',
-    quantity: 12,
-    previousStock: 15,
-    newStock: 3,
-    reason: 'Venda',
-    reference: 'PED-2024-005679',
-    userId: 'u1',
-    userName: 'João Silva',
-    createdAt: '2024-12-27T11:00:00Z',
-  },
-  {
-    id: 'm4',
-    productId: '3',
-    type: 'exit',
-    quantity: 8,
-    previousStock: 8,
-    newStock: 0,
-    reason: 'Venda',
-    reference: 'PED-2024-005680',
-    userId: 'u2',
-    userName: 'Maria Santos',
-    createdAt: '2024-12-26T16:45:00Z',
-  },
-  {
-    id: 'm5',
-    productId: '1',
-    type: 'adjustment',
-    quantity: -2,
-    previousStock: 32,
-    newStock: 30,
-    reason: 'Ajuste de inventário - produto danificado',
-    userId: 'u1',
-    userName: 'João Silva',
-    createdAt: '2024-12-25T09:30:00Z',
-  },
-];
-
-// API Service
+// API Service for Wedrop
 class ApiService {
   private config: ApiConfig | null = null;
 
@@ -212,12 +27,14 @@ class ApiService {
   private async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const config = this.getConfig();
     
-    // For demo, use mock data
     if (!config?.baseUrl || !config?.token) {
-      return null;
+      throw new Error('API não configurada');
     }
 
-    const response = await fetch(`${config.baseUrl}${endpoint}`, {
+    const url = `${config.baseUrl}${endpoint}`;
+    console.log('Fetching:', url);
+
+    const response = await fetch(url, {
       ...options,
       headers: {
         'Authorization': `Bearer ${config.token}`,
@@ -227,36 +44,162 @@ class ApiService {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error:', errorData);
+      throw new Error(errorData.message || `API Error: ${response.status}`);
     }
 
     return response.json();
   }
 
-  async getProducts(): Promise<Product[]> {
+  // Transform Wedrop product to our format
+  private transformWedropProduct(item: any): Product {
+    const stock = item.stock ?? item.quantity ?? 0;
+    const minStock = item.minStock ?? item.min_stock ?? 10;
+    
+    let status: Product['status'] = 'active';
+    if (stock === 0) {
+      status = 'out_of_stock';
+    } else if (stock <= minStock) {
+      status = 'low_stock';
+    } else if (item.status === 'inactive' || item.active === false) {
+      status = 'inactive';
+    }
+
+    return {
+      id: String(item.id),
+      sku: item.sku || item.code || `SKU-${item.id}`,
+      name: item.name || item.title || 'Produto sem nome',
+      description: item.description || item.short_description || '',
+      category: item.category?.name || item.categoryName || 'Sem categoria',
+      price: Number(item.price) || Number(item.sale_price) || 0,
+      costPrice: Number(item.cost_price) || Number(item.costPrice) || 0,
+      stock: stock,
+      minStock: minStock,
+      unit: item.unit || 'un',
+      status: status,
+      supplier: item.suplier?.name || item.supplier?.name || item.supplierName || 'N/A',
+      barcode: item.barcode || item.ean || item.gtin || '',
+      weight: item.weight ? Number(item.weight) : undefined,
+      dimensions: item.dimensions || (item.width && item.height && item.length 
+        ? `${item.width} x ${item.height} x ${item.length} cm` 
+        : undefined),
+      imageUrl: item.images?.[0]?.url || item.image || item.imageUrl,
+      createdAt: item.created_at || item.createdAt || new Date().toISOString(),
+      updatedAt: item.updated_at || item.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  async getProducts(page: number = 1, limit: number = 100): Promise<Product[]> {
+    const config = this.getConfig();
+    
+    if (!config?.baseUrl || !config?.token) {
+      return [];
+    }
+
     try {
-      const data = await this.fetchWithAuth('/products');
-      return data || mockProducts;
-    } catch {
-      return mockProducts;
+      // Try different endpoint patterns commonly used by APIs
+      let data;
+      
+      // Try with pagination parameters
+      try {
+        data = await this.fetchWithAuth(`/catalog/products?page=${page}&limit=${limit}`);
+      } catch (e1) {
+        try {
+          data = await this.fetchWithAuth(`/catalog/products?per_page=${limit}&page=${page}`);
+        } catch (e2) {
+          try {
+            data = await this.fetchWithAuth(`/products?page=${page}&limit=${limit}`);
+          } catch (e3) {
+            // Try the list endpoint
+            data = await this.fetchWithAuth(`/catalog/products/list?page=${page}&limit=${limit}`);
+          }
+        }
+      }
+      
+      // Handle different response formats
+      let products: any[] = [];
+      
+      if (Array.isArray(data)) {
+        products = data;
+      } else if (data?.data && Array.isArray(data.data)) {
+        products = data.data;
+      } else if (data?.products && Array.isArray(data.products)) {
+        products = data.products;
+      } else if (data?.items && Array.isArray(data.items)) {
+        products = data.items;
+      } else if (data?.results && Array.isArray(data.results)) {
+        products = data.results;
+      }
+
+      return products.map(item => this.transformWedropProduct(item));
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return [];
     }
   }
 
   async getProduct(id: string): Promise<Product | undefined> {
+    const config = this.getConfig();
+    
+    if (!config?.baseUrl || !config?.token) {
+      return undefined;
+    }
+
     try {
-      const data = await this.fetchWithAuth(`/products/${id}`);
-      return data || mockProducts.find(p => p.id === id);
-    } catch {
-      return mockProducts.find(p => p.id === id);
+      const data = await this.fetchWithAuth(`/catalog/products/${id}`);
+      
+      // Handle response format
+      const product = data?.data || data?.product || data;
+      
+      if (product) {
+        return this.transformWedropProduct(product);
+      }
+      return undefined;
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      return undefined;
     }
   }
 
   async getProductMovements(productId: string): Promise<StockMovement[]> {
+    const config = this.getConfig();
+    
+    if (!config?.baseUrl || !config?.token) {
+      return [];
+    }
+
     try {
-      const data = await this.fetchWithAuth(`/products/${productId}/movements`);
-      return data || mockMovements.filter(m => m.productId === productId);
-    } catch {
-      return mockMovements.filter(m => m.productId === productId);
+      // Try different endpoints for movements
+      let data;
+      try {
+        data = await this.fetchWithAuth(`/catalog/products/${productId}/movements`);
+      } catch {
+        try {
+          data = await this.fetchWithAuth(`/products/${productId}/stock-movements`);
+        } catch {
+          data = await this.fetchWithAuth(`/stock/movements?product_id=${productId}`);
+        }
+      }
+      
+      const movements = Array.isArray(data) ? data : (data?.data || data?.movements || []);
+      
+      return movements.map((m: any) => ({
+        id: String(m.id),
+        productId: String(m.product_id || m.productId || productId),
+        type: m.type || (m.quantity > 0 ? 'entry' : 'exit'),
+        quantity: Math.abs(Number(m.quantity)),
+        previousStock: Number(m.previous_stock || m.previousStock || 0),
+        newStock: Number(m.new_stock || m.newStock || m.current_stock || 0),
+        reason: m.reason || m.description || m.note || 'Movimentação',
+        reference: m.reference || m.order_id || m.document,
+        userId: String(m.user_id || m.userId || 'system'),
+        userName: m.user_name || m.userName || m.user?.name || 'Sistema',
+        createdAt: m.created_at || m.createdAt || new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error('Error fetching movements:', error);
+      return [];
     }
   }
 
@@ -269,7 +212,7 @@ class ApiService {
       lowStockProducts: products.filter(p => p.status === 'low_stock').length,
       outOfStockProducts: products.filter(p => p.status === 'out_of_stock').length,
       totalValue: products.reduce((acc, p) => acc + (p.price * p.stock), 0),
-      recentMovements: mockMovements.length,
+      recentMovements: 0,
     };
   }
 
@@ -281,6 +224,22 @@ class ApiService {
       p.name.toLowerCase().includes(lowerQuery) ||
       p.sku.toLowerCase().includes(lowerQuery)
     );
+  }
+
+  // Test connection
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      const products = await this.getProducts(1, 1);
+      return {
+        success: true,
+        message: `Conexão bem sucedida! ${products.length > 0 ? 'Produtos encontrados.' : 'API funcionando.'}`
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Erro ao conectar com a API'
+      };
+    }
   }
 }
 
