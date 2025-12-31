@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { apiService, PaginatedProducts } from '@/lib/api';
 import { Product } from '@/lib/types';
-import { Link } from 'react-router-dom';
+import { ProductDetailModal } from '@/components/ProductDetailModal';
 
 export default function Catalog() {
   const [paginatedData, setPaginatedData] = useState<PaginatedProducts>({
@@ -20,6 +20,8 @@ export default function Catalog() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const limit = 50;
 
   const loadProducts = useCallback(async (page: number, search: string) => {
@@ -179,17 +181,18 @@ export default function Catalog() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {paginatedData.products.map((product) => (
-                    <tr key={product.id} className="table-row-hover group">
+                    <tr 
+                      key={product.id} 
+                      className="table-row-hover group cursor-pointer"
+                      onClick={() => {
+                        setSelectedProduct(product);
+                        setModalOpen(true);
+                      }}
+                    >
                       <td className="px-6 py-4">
-                        <Link
-                          to={`/catalogo/${product.id}`}
-                          className="font-medium text-foreground hover:text-primary transition-colors"
-                        >
+                        <span className="font-medium text-foreground hover:text-primary transition-colors">
                           {product.name}
-                        </Link>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                          {product.description}
-                        </p>
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-muted-foreground font-mono">
                         {product.sku}
@@ -204,9 +207,11 @@ export default function Catalog() {
                         <span className="text-xs text-muted-foreground ml-1">
                           {product.unit}
                         </span>
-                        <p className="text-xs text-muted-foreground">
-                          Mín: {product.minStock}
-                        </p>
+                        {product.minStock > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Mín: {product.minStock}
+                          </p>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-foreground">
                         {formatCurrency(product.price)}
@@ -302,6 +307,12 @@ export default function Catalog() {
           )}
         </>
       )}
+
+      <ProductDetailModal
+        product={selectedProduct}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </MainLayout>
   );
 }

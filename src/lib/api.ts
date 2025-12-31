@@ -62,8 +62,8 @@ class ApiService {
 
   // Transform Wedrop product to our format
   private transformWedropProduct(item: any): Product {
-    const stock = item.stock ?? item.quantity ?? 0;
-    const minStock = item.minStock ?? item.min_stock ?? 10;
+    const stock = item.availableQuantity ?? item.stock ?? item.quantity ?? 0;
+    const minStock = item.minQuantityToSend ?? item.minStock ?? item.min_stock ?? 10;
     
     let status: Product['status'] = 'active';
     if (stock === 0) {
@@ -74,27 +74,50 @@ class ApiService {
       status = 'inactive';
     }
 
+    // Get cover image
+    const coverImage = item.images?.find((img: any) => img.isCover) || item.images?.[0];
+
     return {
       id: String(item.id),
       sku: item.sku || item.code || `SKU-${item.id}`,
+      skuSuplier: item.skuSuplier || '',
       name: item.name || item.title || 'Produto sem nome',
+      fiscalName: item.fiscalName || '',
       description: item.description || item.short_description || '',
       category: item.category?.name || item.categoryName || 'Sem categoria',
+      categoryId: item.categoryId,
       price: Number(item.price) || Number(item.sale_price) || 0,
-      costPrice: Number(item.cost_price) || Number(item.costPrice) || 0,
+      costPrice: Number(item.cost) || Number(item.cost_price) || Number(item.costPrice) || 0,
+      priceCostWithTaxes: Number(item.priceCostWithTaxes) || 0,
       stock: stock,
+      reservedQuantity: item.reservedQuantity ?? 0,
       minStock: minStock,
+      maxStock: item.maxQuantityToSend ?? undefined,
       unit: item.unit || 'un',
+      unitsByBox: item.unitsByBox ?? 1,
       status: status,
       supplier: item.suplier?.name || item.supplier?.name || item.supplierName || 'N/A',
-      barcode: item.barcode || item.ean || item.gtin || '',
+      supplierId: item.suplierId,
+      supplierState: item.suplierCorporate?.state || item.suplierCorporateState || '',
+      brand: item.brand || '',
+      barcode: item.ean || item.barcode || item.gtin || '',
+      ncm: item.ncm || '',
+      cest: item.cest || '',
+      origin: item.origin || '',
       weight: item.weight ? Number(item.weight) : undefined,
-      dimensions: item.dimensions || (item.width && item.height && item.length 
+      boxWeight: item.boxWeight ? Number(item.boxWeight) : undefined,
+      height: item.height ? Number(item.height) : undefined,
+      width: item.width ? Number(item.width) : undefined,
+      length: item.length ? Number(item.length) : undefined,
+      dimensions: item.width && item.height && item.length 
         ? `${item.width} x ${item.height} x ${item.length} cm` 
-        : undefined),
-      imageUrl: item.images?.[0]?.url || item.image || item.imageUrl,
+        : undefined,
+      imageUrl: coverImage?.lg || coverImage?.md || item.image || item.imageUrl,
+      images: item.images || [],
+      videoLink: item.videoLink || item.ytVideo || '',
       createdAt: item.created_at || item.createdAt || new Date().toISOString(),
       updatedAt: item.updated_at || item.updatedAt || new Date().toISOString(),
+      isSelling: item.isSelling ?? true,
     };
   }
 
