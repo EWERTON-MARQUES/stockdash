@@ -43,7 +43,7 @@ export function AppSidebar() {
         {menuItems.map(item => {
         const isActive = location.pathname === item.path;
         return <NavLink key={item.path} to={item.path} onClick={() => setMobileOpen(false)} className={cn('sidebar-item', isActive && 'sidebar-item-active')}>
-              <item.icon className="w-5 h-5" />
+              <item.icon className="w-5 h-5 text-white" />
               <span className="font-medium text-primary-foreground">{item.label}</span>
             </NavLink>;
       })}
