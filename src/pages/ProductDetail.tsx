@@ -344,7 +344,7 @@ export default function ProductDetail() {
               <div className="flex items-center gap-3">
                 <DollarSign className="w-5 h-5 text-success" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Preço de Venda</p>
+                  <p className="text-xs text-muted-foreground">Preço de Custo + Impostos</p>
                   <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(product.price)}
                   </p>
