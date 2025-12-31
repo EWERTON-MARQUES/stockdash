@@ -228,7 +228,7 @@ export function ProductDetailModal({ product, open, onOpenChange }: ProductDetai
             <TabsContent value="precos" className="mt-0 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-5 text-center border border-primary/20">
-                  <p className="text-xs text-muted-foreground font-medium">Preço de Venda</p>
+                  <p className="text-xs text-muted-foreground font-medium">Preço de Custo + Impostos</p>
                   <p className="text-3xl font-bold text-primary mt-1">{formatCurrency(product.price)}</p>
                 </div>
                 <div className="bg-gradient-to-br from-muted to-muted/50 rounded-xl p-5 text-center border border-border">
@@ -238,7 +238,7 @@ export function ProductDetailModal({ product, open, onOpenChange }: ProductDetai
               </div>
               
               <div className="bg-muted/30 rounded-xl p-4">
-                <InfoRow label="Preço de Venda" value={formatCurrency(product.price)} icon={DollarSign} />
+                <InfoRow label="Preço de Custo + Impostos" value={formatCurrency(product.price)} icon={DollarSign} />
                 <InfoRow label="Custo" value={formatCurrency(product.costPrice)} icon={DollarSign} />
                 <InfoRow label="Custo com Impostos" value={formatCurrency(product.priceCostWithTaxes ?? 0)} icon={DollarSign} />
                 <InfoRow 
