@@ -10,22 +10,29 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { 
   Package, Truck, Scale, Ruler, Barcode, Calendar, DollarSign, Box, Tag, 
-  TrendingUp, TrendingDown, ArrowUpDown, History, ShoppingCart
+  TrendingUp, TrendingDown, ArrowUpDown, History, ShoppingCart, Store
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ProductDetailModalProps {
   product: Product | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onMarketplaceUpdate?: () => void;
 }
 
-export function ProductDetailModal({ product, open, onOpenChange }: ProductDetailModalProps) {
+export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceUpdate }: ProductDetailModalProps) {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
+  const [amazon, setAmazon] = useState(false);
+  const [mercadoLivre, setMercadoLivre] = useState(false);
 
   useEffect(() => {
     if (product && open) {
@@ -33,8 +40,37 @@ export function ProductDetailModal({ product, open, onOpenChange }: ProductDetai
       apiService.getProductMovements(product.id)
         .then(setMovements)
         .finally(() => setLoadingMovements(false));
+      
+      // Load marketplace data
+      supabase.from('product_marketplaces').select('*').eq('product_id', product.id).maybeSingle()
+        .then(({ data }) => {
+          setAmazon(data?.amazon || false);
+          setMercadoLivre(data?.mercado_livre || false);
+        });
     }
   }, [product, open]);
+
+  const handleMarketplaceChange = async (field: 'amazon' | 'mercado_livre', value: boolean) => {
+    if (!product) return;
+    const newAmazon = field === 'amazon' ? value : amazon;
+    const newML = field === 'mercado_livre' ? value : mercadoLivre;
+    
+    setAmazon(newAmazon);
+    setMercadoLivre(newML);
+
+    const { error } = await supabase.from('product_marketplaces').upsert({
+      product_id: product.id,
+      amazon: newAmazon,
+      mercado_livre: newML,
+    }, { onConflict: 'product_id' });
+
+    if (error) {
+      toast.error('Erro ao salvar marketplace');
+    } else {
+      toast.success('Marketplace atualizado!');
+      onMarketplaceUpdate?.();
+    }
+  };
 
   if (!product) return null;
 
@@ -132,6 +168,24 @@ export function ProductDetailModal({ product, open, onOpenChange }: ProductDetai
             </div>
           </DialogTitle>
         </DialogHeader>
+
+        {/* Marketplace Checkboxes */}
+        <div className="mx-6 mt-4 p-4 bg-muted/30 rounded-xl border border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Store className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Onde está vendendo?</span>
+          </div>
+          <div className="flex gap-6">
+            <div className="flex items-center gap-2">
+              <Checkbox id="amazon" checked={amazon} onCheckedChange={(v) => handleMarketplaceChange('amazon', !!v)} />
+              <Label htmlFor="amazon" className="text-sm cursor-pointer">Amazon</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="ml" checked={mercadoLivre} onCheckedChange={(v) => handleMarketplaceChange('mercado_livre', !!v)} />
+              <Label htmlFor="ml" className="text-sm cursor-pointer">Mercado Livre</Label>
+            </div>
+          </div>
+        </div>
 
         <Tabs defaultValue="geral" className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-5 shrink-0 mx-6 mt-4 max-w-none" style={{ width: 'calc(100% - 48px)' }}>

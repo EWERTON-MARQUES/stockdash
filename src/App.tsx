@@ -9,6 +9,9 @@ import ProductDetail from "./pages/ProductDetail";
 import Orders from "./pages/Orders";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import ABCCurve from "./pages/ABCCurve";
+import Financial from "./pages/Financial";
+import TelegramSettings from "./pages/TelegramSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +29,9 @@ const App = () => (
           <Route path="/pedidos" element={<Orders />} />
           <Route path="/relatorios" element={<Reports />} />
           <Route path="/configuracoes" element={<Settings />} />
+          <Route path="/curva-abc" element={<ABCCurve />} />
+          <Route path="/financeiro" element={<Financial />} />
+          <Route path="/telegram" element={<TelegramSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

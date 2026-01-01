@@ -1,18 +1,23 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Package, Boxes, AlertTriangle, XCircle, DollarSign, ArrowUpDown, RefreshCw, TrendingUp } from 'lucide-react';
+import { Package, Boxes, AlertTriangle, XCircle, DollarSign, ArrowUpDown, RefreshCw, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { StatCard } from '@/components/ui/stat-card';
 import { apiService } from '@/lib/api';
-import { DashboardStats, Product } from '@/lib/types';
+import { DashboardStats, Product, StockMovement } from '@/lib/types';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
+interface ProductWithMovement extends Product {
+  lastMovement?: StockMovement;
+  movementType?: 'entry' | 'exit';
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentProducts, setRecentProducts] = useState<Product[]>([]);
+  const [movementProducts, setMovementProducts] = useState<ProductWithMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
@@ -21,10 +26,22 @@ export default function Dashboard() {
     try {
       const [statsData, productsResult] = await Promise.all([
         apiService.getDashboardStats(),
-        apiService.getProducts(1, 10),
+        apiService.getProducts(1, 20),
       ]);
       setStats(statsData);
-      setRecentProducts(productsResult.products);
+      
+      // Get products with recent movements (using update dates as proxy)
+      const sortedByUpdate = [...productsResult.products].sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+      
+      // Add movement info based on available data
+      const productsWithMovement: ProductWithMovement[] = sortedByUpdate.slice(0, 10).map(p => ({
+        ...p,
+        movementType: (p.soldQuantity && p.soldQuantity > 0) ? 'exit' : 'entry',
+      }));
+      
+      setMovementProducts(productsWithMovement);
       setLastUpdate(new Date());
     } finally {
       setLoading(false);
@@ -142,19 +159,19 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Products Table */}
+      {/* Products with Latest Movements */}
       <div className="bg-card rounded-2xl border border-border shadow-sm animate-fade-in">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Produtos Recentes</h2>
-            <p className="text-sm text-muted-foreground">Últimos produtos atualizados na API</p>
+            <h2 className="text-lg font-semibold text-foreground">Produtos com Últimas Movimentações</h2>
+            <p className="text-sm text-muted-foreground">Produtos atualizados recentemente na API</p>
           </div>
           <Link
             to="/catalogo"
             className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
           >
             Ver todos
-            <span className="text-xs">→</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
         <div className="overflow-x-auto">
@@ -168,7 +185,7 @@ export default function Dashboard() {
                   SKU
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Categoria
+                  Movimentação
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Estoque
@@ -182,7 +199,7 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {recentProducts.map((product) => (
+              {movementProducts.map((product) => (
                 <tr key={product.id} className="table-row-hover hover:bg-primary/5">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -204,8 +221,21 @@ export default function Dashboard() {
                   <td className="px-6 py-4 text-sm text-muted-foreground font-mono">
                     {product.sku}
                   </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">
-                    {product.category}
+                  <td className="px-6 py-4">
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        product.movementType === 'exit' 
+                          ? 'bg-destructive/10 text-destructive border-destructive/20' 
+                          : 'bg-success/10 text-success border-success/20'
+                      }
+                    >
+                      {product.movementType === 'exit' ? (
+                        <><TrendingDown className="w-3 h-3 mr-1" /> Saída</>
+                      ) : (
+                        <><TrendingUp className="w-3 h-3 mr-1" /> Entrada</>
+                      )}
+                    </Badge>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">

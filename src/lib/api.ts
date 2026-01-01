@@ -12,6 +12,7 @@ export interface CatalogFilters {
   category?: string;
   supplier?: string;
   status?: string;
+  marketplace?: string;
 }
 
 export interface Category {

@@ -14,7 +14,248 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      accounts_payable: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          description: string
+          document_number: string | null
+          due_date: string
+          id: string
+          notes: string | null
+          paid_date: string | null
+          payment_method: string | null
+          recurrence: string | null
+          status: string
+          supplier: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          description: string
+          document_number?: string | null
+          due_date: string
+          id?: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          recurrence?: string | null
+          status?: string
+          supplier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          description?: string
+          document_number?: string | null
+          due_date?: string
+          id?: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          recurrence?: string | null
+          status?: string
+          supplier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      accounts_receivable: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          customer: string | null
+          description: string
+          document_number: string | null
+          due_date: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          received_date: string | null
+          recurrence: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          customer?: string | null
+          description: string
+          document_number?: string | null
+          due_date: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          received_date?: string | null
+          recurrence?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          customer?: string | null
+          description?: string
+          document_number?: string | null
+          due_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          received_date?: string | null
+          recurrence?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cash_flow: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          date: string
+          description: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          date: string
+          description: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      financial_accounts: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_marketplaces: {
+        Row: {
+          amazon: boolean
+          created_at: string
+          id: string
+          mercado_livre: boolean
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          amazon?: boolean
+          created_at?: string
+          id?: string
+          mercado_livre?: boolean
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          amazon?: boolean
+          created_at?: string
+          id?: string
+          mercado_livre?: boolean
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_config: {
+        Row: {
+          bot_token: string | null
+          chat_id: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          low_stock_threshold: number
+          updated_at: string
+        }
+        Insert: {
+          bot_token?: string | null
+          chat_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          low_stock_threshold?: number
+          updated_at?: string
+        }
+        Update: {
+          bot_token?: string | null
+          chat_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          low_stock_threshold?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
