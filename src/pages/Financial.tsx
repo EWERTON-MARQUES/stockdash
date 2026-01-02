@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, RefreshCw, DollarSign, TrendingUp, TrendingDown, Calendar, FileText, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Plus, RefreshCw, DollarSign, TrendingUp, TrendingDown, Calendar, FileText, ArrowUpRight, ArrowDownRight, Pencil, Trash2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 interface AccountPayable {
   id: string;
@@ -75,6 +76,7 @@ export default function Financial() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'payable' | 'receivable'>('payable');
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -93,11 +95,10 @@ export default function Financial() {
       const [payablesRes, receivablesRes, cashFlowRes] = await Promise.all([
         supabase.from('accounts_payable').select('*').order('due_date', { ascending: true }),
         supabase.from('accounts_receivable').select('*').order('due_date', { ascending: true }),
-        supabase.from('cash_flow').select('*').order('date', { ascending: false }).limit(50),
+        supabase.from('cash_flow').select('*').order('date', { ascending: false }).limit(100),
       ]);
 
       if (payablesRes.data) {
-        // Update overdue status
         const today = new Date();
         const updated = payablesRes.data.map(p => ({
           ...p,
@@ -137,44 +138,112 @@ export default function Financial() {
     }
 
     try {
-      if (modalType === 'payable') {
-        const { error } = await supabase.from('accounts_payable').insert({
-          description: formData.description,
-          amount: parseFloat(formData.amount),
-          due_date: formData.due_date,
-          supplier: formData.supplier || null,
-          payment_method: formData.payment_method || null,
-          category: formData.category || null,
-          notes: formData.notes || null,
-          document_number: formData.document_number || null,
-          status: 'pending',
-        });
+      if (editingId) {
+        // Update existing
+        if (modalType === 'payable') {
+          const { error } = await supabase.from('accounts_payable').update({
+            description: formData.description,
+            amount: parseFloat(formData.amount),
+            due_date: formData.due_date,
+            supplier: formData.supplier || null,
+            payment_method: formData.payment_method || null,
+            category: formData.category || null,
+            notes: formData.notes || null,
+            document_number: formData.document_number || null,
+          }).eq('id', editingId);
 
-        if (error) throw error;
-        toast.success('Conta a pagar criada!');
+          if (error) throw error;
+          toast.success('Conta a pagar atualizada!');
+        } else {
+          const { error } = await supabase.from('accounts_receivable').update({
+            description: formData.description,
+            amount: parseFloat(formData.amount),
+            due_date: formData.due_date,
+            customer: formData.customer || null,
+            payment_method: formData.payment_method || null,
+            category: formData.category || null,
+            notes: formData.notes || null,
+            document_number: formData.document_number || null,
+          }).eq('id', editingId);
+
+          if (error) throw error;
+          toast.success('Conta a receber atualizada!');
+        }
       } else {
-        const { error } = await supabase.from('accounts_receivable').insert({
-          description: formData.description,
-          amount: parseFloat(formData.amount),
-          due_date: formData.due_date,
-          customer: formData.customer || null,
-          payment_method: formData.payment_method || null,
-          category: formData.category || null,
-          notes: formData.notes || null,
-          document_number: formData.document_number || null,
-          status: 'pending',
-        });
+        // Create new
+        if (modalType === 'payable') {
+          const { error } = await supabase.from('accounts_payable').insert({
+            description: formData.description,
+            amount: parseFloat(formData.amount),
+            due_date: formData.due_date,
+            supplier: formData.supplier || null,
+            payment_method: formData.payment_method || null,
+            category: formData.category || null,
+            notes: formData.notes || null,
+            document_number: formData.document_number || null,
+            status: 'pending',
+          });
 
-        if (error) throw error;
-        toast.success('Conta a receber criada!');
+          if (error) throw error;
+          toast.success('Conta a pagar criada!');
+        } else {
+          const { error } = await supabase.from('accounts_receivable').insert({
+            description: formData.description,
+            amount: parseFloat(formData.amount),
+            due_date: formData.due_date,
+            customer: formData.customer || null,
+            payment_method: formData.payment_method || null,
+            category: formData.category || null,
+            notes: formData.notes || null,
+            document_number: formData.document_number || null,
+            status: 'pending',
+          });
+
+          if (error) throw error;
+          toast.success('Conta a receber criada!');
+        }
       }
 
       setModalOpen(false);
+      setEditingId(null);
       resetForm();
       loadData();
     } catch (error) {
-      console.error('Error creating entry:', error);
-      toast.error('Erro ao criar registro');
+      console.error('Error saving entry:', error);
+      toast.error('Erro ao salvar registro');
+    }
+  };
+
+  const handleEdit = (item: AccountPayable | AccountReceivable, type: 'payable' | 'receivable') => {
+    setModalType(type);
+    setEditingId(item.id);
+    setFormData({
+      description: item.description,
+      amount: String(item.amount),
+      due_date: item.due_date,
+      supplier: type === 'payable' ? (item as AccountPayable).supplier || '' : '',
+      customer: type === 'receivable' ? (item as AccountReceivable).customer || '' : '',
+      payment_method: item.payment_method || '',
+      category: item.category || '',
+      notes: item.notes || '',
+      document_number: item.document_number || '',
+    });
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id: string, type: 'payable' | 'receivable') => {
+    if (!confirm('Tem certeza que deseja excluir este registro?')) return;
+
+    try {
+      const table = type === 'payable' ? 'accounts_payable' : 'accounts_receivable';
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      
+      if (error) throw error;
+      toast.success('Registro excluído!');
+      loadData();
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      toast.error('Erro ao excluir registro');
     }
   };
 
@@ -191,7 +260,6 @@ export default function Financial() {
         
         if (error) throw error;
 
-        // Add to cash flow
         if (payable) {
           await supabase.from('cash_flow').insert({
             type: 'expense',
@@ -215,7 +283,6 @@ export default function Financial() {
         
         if (error) throw error;
 
-        // Add to cash flow
         if (receivable) {
           await supabase.from('cash_flow').insert({
             type: 'income',
@@ -255,6 +322,7 @@ export default function Financial() {
 
   const openModal = (type: 'payable' | 'receivable') => {
     setModalType(type);
+    setEditingId(null);
     resetForm();
     setModalOpen(true);
   };
@@ -275,7 +343,6 @@ export default function Financial() {
   };
 
   const getStatusBadge = (status: string, type: 'payable' | 'receivable') => {
-    const isPaid = type === 'payable' ? status === 'paid' : status === 'received';
     const styles = {
       pending: 'bg-warning/10 text-warning border-warning/20',
       paid: 'bg-success/10 text-success border-success/20',
@@ -303,16 +370,59 @@ export default function Financial() {
   const overduePayable = payables.filter(p => p.status === 'overdue').length;
   const overdueReceivable = receivables.filter(r => r.status === 'overdue').length;
 
-  // DRE calculation (simplified)
-  const monthStart = startOfMonth(new Date());
-  const monthEnd = endOfMonth(new Date());
-  const monthIncome = cashFlow
-    .filter(c => c.type === 'income' && isAfter(parseISO(c.date), monthStart) && isBefore(parseISO(c.date), monthEnd))
+  // DRE calculation - automatic based on cash flow
+  const currentMonth = new Date();
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  
+  const monthCashFlow = cashFlow.filter(c => {
+    const date = parseISO(c.date);
+    return isAfter(date, monthStart) && isBefore(date, monthEnd) || isSameMonth(date, currentMonth);
+  });
+
+  const monthIncome = monthCashFlow
+    .filter(c => c.type === 'income')
     .reduce((acc, c) => acc + c.amount, 0);
-  const monthExpense = cashFlow
-    .filter(c => c.type === 'expense' && isAfter(parseISO(c.date), monthStart) && isBefore(parseISO(c.date), monthEnd))
+  const monthExpense = monthCashFlow
+    .filter(c => c.type === 'expense')
     .reduce((acc, c) => acc + c.amount, 0);
   const monthResult = monthIncome - monthExpense;
+
+  // Group expenses by category for DRE
+  const expensesByCategory = monthCashFlow
+    .filter(c => c.type === 'expense')
+    .reduce((acc, c) => {
+      const cat = c.category || 'Outros';
+      acc[cat] = (acc[cat] || 0) + c.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+  const incomeByCategory = monthCashFlow
+    .filter(c => c.type === 'income')
+    .reduce((acc, c) => {
+      const cat = c.category || 'Outros';
+      acc[cat] = (acc[cat] || 0) + c.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+  // Cash flow chart data - last 30 days
+  const last30Days = Array.from({ length: 30 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    return format(date, 'yyyy-MM-dd');
+  });
+
+  const cashFlowChartData = last30Days.map(date => {
+    const dayEntries = cashFlow.filter(c => c.date === date);
+    const income = dayEntries.filter(c => c.type === 'income').reduce((a, c) => a + c.amount, 0);
+    const expense = dayEntries.filter(c => c.type === 'expense').reduce((a, c) => a + c.amount, 0);
+    return {
+      date,
+      income,
+      expense,
+      balance: income - expense,
+    };
+  });
 
   return (
     <MainLayout>
@@ -329,9 +439,11 @@ export default function Financial() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-gradient-to-br from-destructive/10 to-destructive/5 rounded-xl p-5 border border-destructive/20">
+        <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowDownRight className="w-5 h-5 text-destructive" />
+            <div className="p-2 rounded-lg bg-destructive/10">
+              <ArrowDownRight className="w-4 h-4 text-destructive" />
+            </div>
             <span className="text-sm font-medium text-muted-foreground">A Pagar</span>
           </div>
           <p className="text-2xl font-bold text-foreground">{formatCurrency(totalPayable)}</p>
@@ -339,9 +451,11 @@ export default function Financial() {
             <p className="text-xs text-destructive mt-1">{overduePayable} vencido(s)</p>
           )}
         </div>
-        <div className="bg-gradient-to-br from-success/10 to-success/5 rounded-xl p-5 border border-success/20">
+        <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowUpRight className="w-5 h-5 text-success" />
+            <div className="p-2 rounded-lg bg-success/10">
+              <ArrowUpRight className="w-4 h-4 text-success" />
+            </div>
             <span className="text-sm font-medium text-muted-foreground">A Receber</span>
           </div>
           <p className="text-2xl font-bold text-foreground">{formatCurrency(totalReceivable)}</p>
@@ -349,18 +463,22 @@ export default function Financial() {
             <p className="text-xs text-warning mt-1">{overdueReceivable} vencido(s)</p>
           )}
         </div>
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-5 border border-primary/20">
+        <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="w-5 h-5 text-primary" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <DollarSign className="w-4 h-4 text-primary" />
+            </div>
             <span className="text-sm font-medium text-muted-foreground">Saldo Previsto</span>
           </div>
           <p className={`text-2xl font-bold ${totalReceivable - totalPayable >= 0 ? 'text-success' : 'text-destructive'}`}>
             {formatCurrency(totalReceivable - totalPayable)}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-chart-4/10 to-chart-4/5 rounded-xl p-5 border border-chart-4/20">
+        <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="w-5 h-5 text-chart-4" />
+            <div className="p-2 rounded-lg bg-chart-1/10">
+              <FileText className="w-4 h-4 text-chart-1" />
+            </div>
             <span className="text-sm font-medium text-muted-foreground">Resultado do Mês</span>
           </div>
           <p className={`text-2xl font-bold ${monthResult >= 0 ? 'text-success' : 'text-destructive'}`}>
@@ -384,11 +502,11 @@ export default function Financial() {
               Nova Conta a Pagar
             </Button>
           </div>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border bg-muted/50">
+                  <tr className="border-b border-border bg-muted/30">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Descrição</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Fornecedor</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Valor</th>
@@ -399,18 +517,26 @@ export default function Financial() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {payables.map((item) => (
-                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground">{item.description}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{item.supplier || '-'}</td>
                       <td className="px-4 py-3 text-sm font-semibold text-destructive">{formatCurrency(item.amount)}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(item.due_date)}</td>
                       <td className="px-4 py-3">{getStatusBadge(item.status, 'payable')}</td>
                       <td className="px-4 py-3">
-                        {item.status === 'pending' || item.status === 'overdue' ? (
-                          <Button size="sm" variant="outline" onClick={() => handleMarkAsPaid(item.id, 'payable')}>
-                            Marcar Pago
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(item, 'payable')}>
+                            <Pencil className="w-4 h-4" />
                           </Button>
-                        ) : null}
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item.id, 'payable')}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                          {(item.status === 'pending' || item.status === 'overdue') && (
+                            <Button size="sm" variant="outline" onClick={() => handleMarkAsPaid(item.id, 'payable')}>
+                              Pagar
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -433,11 +559,11 @@ export default function Financial() {
               Nova Conta a Receber
             </Button>
           </div>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border bg-muted/50">
+                  <tr className="border-b border-border bg-muted/30">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Descrição</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Cliente</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Valor</th>
@@ -448,18 +574,26 @@ export default function Financial() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {receivables.map((item) => (
-                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground">{item.description}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{item.customer || '-'}</td>
                       <td className="px-4 py-3 text-sm font-semibold text-success">{formatCurrency(item.amount)}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(item.due_date)}</td>
                       <td className="px-4 py-3">{getStatusBadge(item.status, 'receivable')}</td>
                       <td className="px-4 py-3">
-                        {item.status === 'pending' || item.status === 'overdue' ? (
-                          <Button size="sm" variant="outline" onClick={() => handleMarkAsPaid(item.id, 'receivable')}>
-                            Marcar Recebido
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(item, 'receivable')}>
+                            <Pencil className="w-4 h-4" />
                           </Button>
-                        ) : null}
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item.id, 'receivable')}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                          {(item.status === 'pending' || item.status === 'overdue') && (
+                            <Button size="sm" variant="outline" onClick={() => handleMarkAsPaid(item.id, 'receivable')}>
+                              Receber
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -476,11 +610,52 @@ export default function Financial() {
         </TabsContent>
 
         <TabsContent value="cashflow">
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          {/* Cash Flow Chart */}
+          <div className="bg-card rounded-xl border border-border p-5 mb-6 shadow-sm">
+            <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              Fluxo de Caixa - Últimos 30 dias
+            </h3>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cashFlowChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(v) => format(parseISO(v), 'dd/MM')}
+                    tick={{ fontSize: 10 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    interval={4}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number, name: string) => [
+                      formatCurrency(value),
+                      name === 'income' ? 'Entrada' : name === 'expense' ? 'Saída' : 'Saldo'
+                    ]}
+                    labelFormatter={(label) => format(parseISO(label), 'dd/MM/yyyy')}
+                  />
+                  <Bar dataKey="income" fill="hsl(var(--success))" name="income" />
+                  <Bar dataKey="expense" fill="hsl(var(--destructive))" name="expense" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border bg-muted/50">
+                  <tr className="border-b border-border bg-muted/30">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Data</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Tipo</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Descrição</th>
@@ -490,7 +665,7 @@ export default function Financial() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {cashFlow.map((item) => (
-                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(item.date)}</td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" className={item.type === 'income' ? 'bg-success/10 text-success border-success/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
@@ -517,44 +692,77 @@ export default function Financial() {
         </TabsContent>
 
         <TabsContent value="dre">
-          <div className="bg-card rounded-xl border border-border p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              Demonstrativo de Resultado - {format(new Date(), 'MMMM yyyy', { locale: ptBR })}
+              Demonstrativo de Resultado - {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
             </h3>
             
-            <div className="space-y-4">
-              <div className="flex justify-between items-center py-3 border-b border-border">
-                <span className="font-medium text-foreground">Receitas</span>
-                <span className="font-bold text-success">{formatCurrency(monthIncome)}</span>
+            <div className="space-y-6">
+              {/* Receitas */}
+              <div>
+                <h4 className="font-semibold text-foreground border-b border-border pb-2 mb-3">RECEITAS</h4>
+                {Object.entries(incomeByCategory).length > 0 ? (
+                  <div className="space-y-2">
+                    {Object.entries(incomeByCategory).map(([cat, value]) => (
+                      <div key={cat} className="flex justify-between items-center py-2 px-3 bg-success/5 rounded-lg">
+                        <span className="text-sm text-foreground">{cat}</span>
+                        <span className="font-medium text-success">{formatCurrency(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground py-2">Nenhuma receita registrada</p>
+                )}
+                <div className="flex justify-between items-center py-3 mt-2 border-t border-border">
+                  <span className="font-semibold text-foreground">Total Receitas</span>
+                  <span className="font-bold text-success text-lg">{formatCurrency(monthIncome)}</span>
+                </div>
               </div>
               
-              <div className="flex justify-between items-center py-3 border-b border-border">
-                <span className="font-medium text-foreground">(-) Despesas</span>
-                <span className="font-bold text-destructive">{formatCurrency(monthExpense)}</span>
+              {/* Despesas */}
+              <div>
+                <h4 className="font-semibold text-foreground border-b border-border pb-2 mb-3">DESPESAS</h4>
+                {Object.entries(expensesByCategory).length > 0 ? (
+                  <div className="space-y-2">
+                    {Object.entries(expensesByCategory).map(([cat, value]) => (
+                      <div key={cat} className="flex justify-between items-center py-2 px-3 bg-destructive/5 rounded-lg">
+                        <span className="text-sm text-foreground">{cat}</span>
+                        <span className="font-medium text-destructive">({formatCurrency(value)})</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground py-2">Nenhuma despesa registrada</p>
+                )}
+                <div className="flex justify-between items-center py-3 mt-2 border-t border-border">
+                  <span className="font-semibold text-foreground">Total Despesas</span>
+                  <span className="font-bold text-destructive text-lg">({formatCurrency(monthExpense)})</span>
+                </div>
               </div>
               
-              <div className="flex justify-between items-center py-4 bg-muted/30 rounded-lg px-4 -mx-4">
-                <span className="text-lg font-bold text-foreground">Resultado do Período</span>
-                <span className={`text-xl font-bold ${monthResult >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {/* Resultado */}
+              <div className="flex justify-between items-center py-4 px-4 bg-primary/10 rounded-xl border border-primary/20">
+                <span className="text-lg font-bold text-foreground">RESULTADO DO PERÍODO</span>
+                <span className={`text-2xl font-bold ${monthResult >= 0 ? 'text-success' : 'text-destructive'}`}>
                   {formatCurrency(monthResult)}
                 </span>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground mt-6">
-              * DRE simplificado baseado nas movimentações do fluxo de caixa do mês atual.
+              * DRE calculado automaticamente com base nos lançamentos de contas a pagar e receber baixados no mês.
             </p>
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* Modal for new entry */}
+      {/* Modal for new/edit entry */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {modalType === 'payable' ? 'Nova Conta a Pagar' : 'Nova Conta a Receber'}
+              {editingId ? 'Editar' : 'Nova'} {modalType === 'payable' ? 'Conta a Pagar' : 'Conta a Receber'}
             </DialogTitle>
           </DialogHeader>
           
@@ -664,7 +872,7 @@ export default function Financial() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit}>Salvar</Button>
+            <Button onClick={handleSubmit}>{editingId ? 'Salvar' : 'Criar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

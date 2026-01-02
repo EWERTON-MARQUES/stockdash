@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Package, Boxes, AlertTriangle, XCircle, DollarSign, ArrowUpDown, RefreshCw, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { Package, Boxes, AlertTriangle, XCircle, DollarSign, ArrowUpDown, RefreshCw, TrendingUp, TrendingDown, ArrowRight, BarChart3 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { StatCard } from '@/components/ui/stat-card';
@@ -9,26 +9,38 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 interface ProductWithMovement extends Product {
   lastMovement?: StockMovement;
   movementType?: 'entry' | 'exit';
 }
 
+const CHART_COLORS = ['hsl(205, 90%, 45%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(0, 72%, 50%)', 'hsl(280, 60%, 50%)', 'hsl(180, 60%, 45%)'];
+
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [movementProducts, setMovementProducts] = useState<ProductWithMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [stockTrend, setStockTrend] = useState<{ date: string; stock: number; value: number }[]>([]);
+  const [topProducts, setTopProducts] = useState<{ name: string; sales: number; stock: number }[]>([]);
+  const [categoryData, setCategoryData] = useState<{ name: string; value: number; stock: number }[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsData, productsResult] = await Promise.all([
+      const [statsData, productsResult, trendData, topData, catData] = await Promise.all([
         apiService.getDashboardStats(),
         apiService.getProducts(1, 20),
+        apiService.getStockTrendData(),
+        apiService.getTopSellingProducts(),
+        apiService.getCategoryDistribution(),
       ]);
       setStats(statsData);
+      setStockTrend(trendData);
+      setTopProducts(topData);
+      setCategoryData(catData);
       
       // Get products with recent movements (using update dates as proxy)
       const sortedByUpdate = [...productsResult.products].sort(
@@ -36,7 +48,7 @@ export default function Dashboard() {
       );
       
       // Add movement info based on available data
-      const productsWithMovement: ProductWithMovement[] = sortedByUpdate.slice(0, 10).map(p => ({
+      const productsWithMovement: ProductWithMovement[] = sortedByUpdate.slice(0, 8).map(p => ({
         ...p,
         movementType: (p.soldQuantity && p.soldQuantity > 0) ? 'exit' : 'entry',
       }));
@@ -65,6 +77,11 @@ export default function Dashboard() {
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR').format(value);
+  };
+
+  const formatShortDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   };
 
   if (loading && !stats) {
@@ -105,7 +122,7 @@ export default function Dashboard() {
       </PageHeader>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           title="Total de Produtos"
           value={formatNumber(stats?.totalProducts || 0)}
@@ -134,36 +151,202 @@ export default function Dashboard() {
           title="Valor Total"
           value={formatCurrency(stats?.totalValue || 0)}
           icon={DollarSign}
-          iconClassName="bg-chart-4/10 text-chart-4"
+          iconClassName="bg-chart-1/10 text-chart-1"
         />
         <StatCard
           title="Movimentações"
           value={formatNumber(stats?.recentMovements || 0)}
           icon={ArrowUpDown}
-          iconClassName="bg-chart-5/10 text-chart-5"
+          iconClassName="bg-chart-2/10 text-chart-2"
         />
       </div>
 
-      {/* Info Banner */}
-      <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/20 rounded-lg">
-            <TrendingUp className="w-5 h-5 text-primary" />
+      {/* Charts Row */}
+      <div className="grid gap-6 mb-6 lg:grid-cols-2">
+        {/* Stock Trend Chart */}
+        <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              Tendência de Estoque
+            </h3>
+            <Badge variant="outline" className="text-xs">Últimos 7 dias</Badge>
           </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Produtos com estoque baixo</p>
-            <p className="text-xs text-muted-foreground">
-              Consideramos estoque baixo produtos com <span className="font-semibold">80 unidades ou menos</span>
-            </p>
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stockTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="date" 
+                  tickFormatter={formatShortDate}
+                  tick={{ fontSize: 11 }}
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tickFormatter={(v) => formatNumber(v)}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value: number) => [formatNumber(value), 'Estoque']}
+                  labelFormatter={(label) => `Data: ${formatShortDate(label)}`}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="stock" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top Products Chart */}
+        <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-success" />
+              Top Produtos (Vendas)
+            </h3>
+          </div>
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topProducts} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  width={100} 
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value: number) => [formatNumber(value), 'Vendas']}
+                />
+                <Bar dataKey="sales" fill="hsl(var(--success))" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Second Charts Row */}
+      <div className="grid gap-6 mb-6 lg:grid-cols-2">
+        {/* Value Trend Chart */}
+        <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-warning" />
+              Valor do Estoque
+            </h3>
+            <Badge variant="outline" className="text-xs">Últimos 7 dias</Badge>
+          </div>
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stockTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="date" 
+                  tickFormatter={formatShortDate}
+                  tick={{ fontSize: 11 }}
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value: number) => [formatCurrency(value), 'Valor']}
+                  labelFormatter={(label) => `Data: ${formatShortDate(label)}`}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="hsl(var(--warning))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--warning))', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Category Distribution */}
+        <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <Package className="w-4 h-4 text-chart-1" />
+              Distribuição por Categoria
+            </h3>
+          </div>
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  dataKey="stock"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={70}
+                  paddingAngle={2}
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value: number, name: string) => [formatNumber(value), name]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-center mt-2">
+            {categoryData.slice(0, 4).map((item, index) => (
+              <div key={item.name} className="flex items-center gap-1 text-xs">
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                />
+                <span className="text-muted-foreground truncate max-w-[80px]">{item.name}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Products with Latest Movements */}
-      <div className="bg-card rounded-2xl border border-border shadow-sm animate-fade-in">
-        <div className="flex items-center justify-between p-6 border-b border-border">
+      <div className="bg-card rounded-xl border border-border shadow-sm animate-fade-in">
+        <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Produtos com Últimas Movimentações</h2>
+            <h2 className="font-semibold text-foreground">Produtos com Últimas Movimentações</h2>
             <p className="text-sm text-muted-foreground">Produtos atualizados recentemente na API</p>
           </div>
           <Link
@@ -177,31 +360,31 @@ export default function Dashboard() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Produto
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   SKU
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Movimentação
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Estoque
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Preço
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Status
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {movementProducts.map((product) => (
-                <tr key={product.id} className="table-row-hover hover:bg-primary/5">
-                  <td className="px-6 py-4">
+                <tr key={product.id} className="table-row-hover">
+                  <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       {product.imageUrl && (
                         <img 
@@ -212,16 +395,16 @@ export default function Dashboard() {
                       )}
                       <Link
                         to={`/catalogo`}
-                        className="font-medium text-foreground hover:text-primary transition-colors line-clamp-1"
+                        className="font-medium text-foreground hover:text-primary transition-colors line-clamp-1 max-w-[200px]"
                       >
                         {product.name}
                       </Link>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground font-mono">
+                  <td className="px-5 py-3 text-sm text-muted-foreground font-mono">
                     {product.sku}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <Badge 
                       variant="outline" 
                       className={
@@ -237,7 +420,7 @@ export default function Dashboard() {
                       )}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-bold ${
                         product.stock === 0 
@@ -249,17 +432,12 @@ export default function Dashboard() {
                         {product.stock}
                       </span>
                       <span className="text-xs text-muted-foreground">{product.unit}</span>
-                      {product.stock <= 80 && product.stock > 0 && (
-                        <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/20">
-                          Baixo
-                        </Badge>
-                      )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-foreground">
+                  <td className="px-5 py-3 text-sm font-semibold text-foreground">
                     {formatCurrency(product.price)}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <StatusBadge status={product.status} />
                   </td>
                 </tr>

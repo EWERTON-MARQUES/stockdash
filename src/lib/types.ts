@@ -30,6 +30,8 @@ export interface Product {
   supplier: string;
   supplierId?: number;
   supplierState?: string;
+  supplierCnpj?: string;
+  supplierCorporateName?: string;
   brand?: string;
   barcode?: string;
   ncm?: string;
