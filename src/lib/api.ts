@@ -258,29 +258,47 @@ class ApiService {
       }
     });
     
-    if (categoriesMap.size > 0) {
-      this.categoriesCache = Array.from(categoriesMap.entries()).map(([id, name]) => ({ id, name }));
-    }
-    if (suppliersMap.size > 0) {
-      this.suppliersCache = Array.from(suppliersMap.entries()).map(([id, name]) => ({ id, name }));
-    }
+    // Merge with existing cache (accumulate)
+    categoriesMap.forEach((name, id) => {
+      if (!this.categoriesCache.find(c => c.id === id)) {
+        this.categoriesCache.push({ id, name });
+      }
+    });
+    suppliersMap.forEach((name, id) => {
+      if (!this.suppliersCache.find(s => s.id === id)) {
+        this.suppliersCache.push({ id, name });
+      }
+    });
+    
+    // Sort alphabetically
+    this.categoriesCache.sort((a, b) => a.name.localeCompare(b.name));
+    this.suppliersCache.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  // Fetch categories and suppliers from ALL products
+  async loadAllFilters(): Promise<void> {
+    const allProducts = await this.getAllProductsForStats();
+    this.extractFiltersFromProducts(allProducts.map(p => ({
+      categoryId: p.categoryId,
+      category: { name: p.category },
+      suplierId: p.supplierId,
+      suplier: { name: p.supplier }
+    })));
   }
 
   async getCategories(): Promise<Category[]> {
-    if (this.categoriesCache.length > 0) {
-      return this.categoriesCache;
+    // If cache is small, load from all products
+    if (this.categoriesCache.length < 5) {
+      await this.loadAllFilters();
     }
-    // Fetch some products to populate cache
-    await this.getProducts(1, 100);
     return this.categoriesCache;
   }
 
   async getSuppliers(): Promise<Supplier[]> {
-    if (this.suppliersCache.length > 0) {
-      return this.suppliersCache;
+    // If cache is small, load from all products
+    if (this.suppliersCache.length < 5) {
+      await this.loadAllFilters();
     }
-    // Fetch some products to populate cache
-    await this.getProducts(1, 100);
     return this.suppliersCache;
   }
 
