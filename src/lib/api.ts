@@ -174,7 +174,7 @@ class ApiService {
 
     try {
       const offset = (page - 1) * limit;
-      let endpoint = `/catalog?limit=${limit}&offset=${offset}&page=${page}&search=${encodeURIComponent(search)}`;
+      let endpoint = `/catalog?limit=${limit}&offset=${offset}&search=${encodeURIComponent(search)}`;
       
       if (filters?.category && filters.category !== 'all') {
         endpoint += `&categoryId=${filters.category}`;
@@ -439,7 +439,7 @@ class ApiService {
 
     try {
       // First, get the total count from the API
-      const initialData = await this.fetchWithAuth(`/catalog?limit=1&offset=0&page=1&search=&categoryId=0&suplierId=&brand=&orderBy=id%7Cdesc`);
+      const initialData = await this.fetchWithAuth(`/catalog?limit=1&offset=0&search=&categoryId=0&suplierId=&brand=&orderBy=id%7Cdesc`);
       const totalFromApi = initialData?.total || 0;
       
       // Fetch all products for accurate calculations
@@ -540,7 +540,7 @@ class ApiService {
 
     try {
       // Fetch products ordered by update date
-      const data = await this.fetchWithAuth(`/catalog?limit=20&offset=0&page=1&search=&categoryId=0&suplierId=&brand=&orderBy=updatedAt%7Cdesc`);
+      const data = await this.fetchWithAuth(`/catalog?limit=20&offset=0&search=&categoryId=0&suplierId=&brand=&orderBy=updatedAt%7Cdesc`);
       
       let products: any[] = [];
       if (Array.isArray(data)) {

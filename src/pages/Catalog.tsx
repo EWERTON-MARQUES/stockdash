@@ -78,51 +78,103 @@ export default function Catalog() {
   const loadProducts = useCallback(async (page: number, search: string, currentFilters: CatalogFilters, currentLimit: number, sort: 'asc' | 'desc' | null) => {
     setLoading(true);
     try {
-      // Build filters with sortBy
+      const needsClientSidePagination =
+        (currentFilters.status && currentFilters.status !== 'all') ||
+        (currentFilters.marketplace && currentFilters.marketplace !== 'all');
+
+      // When filters depend on local data (status computed from stock, marketplaces from database),
+      // we must paginate client-side to avoid "blank pages".
+      if (needsClientSidePagination) {
+        const all = await apiService.getAllProductsForStats();
+
+        let list = all;
+
+        // Search (name or sku)
+        const q = search.trim().toLowerCase();
+        if (q) {
+          list = list.filter(p =>
+            p.name.toLowerCase().includes(q) ||
+            p.sku.toLowerCase().includes(q)
+          );
+        }
+
+        // Category / supplier (IDs)
+        if (currentFilters.category && currentFilters.category !== 'all') {
+          const categoryId = Number(currentFilters.category);
+          list = list.filter(p => p.categoryId === categoryId);
+        }
+        if (currentFilters.supplier && currentFilters.supplier !== 'all') {
+          const supplierId = Number(currentFilters.supplier);
+          list = list.filter(p => p.supplierId === supplierId);
+        }
+
+        // Status (stock-based)
+        if (currentFilters.status && currentFilters.status !== 'all') {
+          if (currentFilters.status === 'active') {
+            list = list.filter(p => p.stock > 0);
+          } else if (currentFilters.status === 'low_stock') {
+            list = list.filter(p => p.stock > 0 && p.stock <= 80);
+          } else if (currentFilters.status === 'out_of_stock') {
+            list = list.filter(p => p.stock === 0);
+          }
+        }
+
+        // Marketplace (from database)
+        if (currentFilters.marketplace && currentFilters.marketplace !== 'all') {
+          list = list.filter(p => {
+            const mp = marketplaceData[p.id];
+            if (!mp) return currentFilters.marketplace === 'none';
+            if (currentFilters.marketplace === 'amazon') return mp.amazon;
+            if (currentFilters.marketplace === 'mercado_livre') return mp.mercado_livre;
+            if (currentFilters.marketplace === 'both') return mp.amazon && mp.mercado_livre;
+            return true;
+          });
+        }
+
+        // Sort
+        if (sort) {
+          list = [...list].sort((a, b) => (sort === 'desc' ? b.stock - a.stock : a.stock - b.stock));
+        }
+
+        const total = list.length;
+        const totalPages = Math.max(1, Math.ceil(total / currentLimit));
+        const safePage = Math.min(Math.max(1, page), totalPages);
+        const start = (safePage - 1) * currentLimit;
+        const pageItems = list.slice(start, start + currentLimit);
+
+        setPaginatedData({
+          products: pageItems,
+          total,
+          page: safePage,
+          limit: currentLimit,
+          totalPages,
+        });
+
+        if (safePage !== page) setCurrentPage(safePage);
+        return;
+      }
+
+      // Server-side pagination (fast path)
       const filtersWithSort: CatalogFilters = {
         ...currentFilters,
-        sortBy: sort === 'desc' ? 'stock_desc' : sort === 'asc' ? 'stock_asc' : undefined
+        sortBy: sort === 'desc' ? 'stock_desc' : sort === 'asc' ? 'stock_asc' : undefined,
       };
-      
+
       const data = await apiService.getProducts(page, currentLimit, search, filtersWithSort);
-      
-      let filteredProducts = [...data.products];
-      
-      // Apply status filter client-side
-      if (currentFilters.status && currentFilters.status !== 'all') {
-        if (currentFilters.status === 'active') {
-          filteredProducts = filteredProducts.filter(p => p.stock > 0);
-        } else if (currentFilters.status === 'low_stock') {
-          filteredProducts = filteredProducts.filter(p => p.stock > 0 && p.stock <= 80);
-        } else if (currentFilters.status === 'out_of_stock') {
-          filteredProducts = filteredProducts.filter(p => p.stock === 0);
-        }
+      const totalPages = Math.max(1, Math.ceil(data.total / currentLimit));
+      const safePage = Math.min(Math.max(1, page), totalPages);
+
+      // If user is on an invalid/empty page (common after changing "por página"), snap to last valid page.
+      if ((safePage !== page) || (data.total > 0 && data.products.length === 0 && page > 1)) {
+        setCurrentPage(safePage);
+        return;
       }
-      
-      // Apply marketplace filter client-side
-      if (currentFilters.marketplace && currentFilters.marketplace !== 'all') {
-        filteredProducts = filteredProducts.filter(p => {
-          const mp = marketplaceData[p.id];
-          if (!mp) return currentFilters.marketplace === 'none';
-          if (currentFilters.marketplace === 'amazon') return mp.amazon;
-          if (currentFilters.marketplace === 'mercado_livre') return mp.mercado_livre;
-          if (currentFilters.marketplace === 'both') return mp.amazon && mp.mercado_livre;
-          return true;
-        });
-      }
-      
-      // Client-side stock sort as fallback
-      if (sort) {
-        filteredProducts.sort((a, b) => sort === 'desc' ? b.stock - a.stock : a.stock - b.stock);
-      }
-      
-      const totalPages = Math.ceil(data.total / currentLimit);
-      
+
       setPaginatedData({
         ...data,
-        products: filteredProducts,
         totalPages,
-        limit: currentLimit
+        page: safePage,
+        limit: currentLimit,
       });
     } finally {
       setLoading(false);
