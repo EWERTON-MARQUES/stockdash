@@ -76,16 +76,28 @@ export default function Catalog() {
   const loadProducts = useCallback(async (page: number, search: string, currentFilters: CatalogFilters, currentLimit: number, sort: 'asc' | 'desc' | null) => {
     setLoading(true);
     try {
-      // Build filters with sortBy if stock sort is active
-      const filtersWithSort = {
+      // Build filters with sortBy
+      const filtersWithSort: CatalogFilters = {
         ...currentFilters,
         sortBy: sort === 'desc' ? 'stock_desc' : sort === 'asc' ? 'stock_asc' : undefined
       };
       
       const data = await apiService.getProducts(page, currentLimit, search, filtersWithSort);
       
+      let filteredProducts = [...data.products];
+      
+      // Apply status filter client-side
+      if (currentFilters.status && currentFilters.status !== 'all') {
+        if (currentFilters.status === 'active') {
+          filteredProducts = filteredProducts.filter(p => p.stock > 0);
+        } else if (currentFilters.status === 'low_stock') {
+          filteredProducts = filteredProducts.filter(p => p.stock > 0 && p.stock <= 80);
+        } else if (currentFilters.status === 'out_of_stock') {
+          filteredProducts = filteredProducts.filter(p => p.stock === 0);
+        }
+      }
+      
       // Apply marketplace filter client-side
-      let filteredProducts = data.products;
       if (currentFilters.marketplace && currentFilters.marketplace !== 'all') {
         filteredProducts = filteredProducts.filter(p => {
           const mp = marketplaceData[p.id];
@@ -102,7 +114,6 @@ export default function Catalog() {
         filteredProducts.sort((a, b) => sort === 'desc' ? b.stock - a.stock : a.stock - b.stock);
       }
       
-      // Recalculate total pages based on actual total
       const totalPages = Math.ceil(data.total / currentLimit);
       
       setPaginatedData({
@@ -142,7 +153,12 @@ export default function Catalog() {
     setCurrentPage(1); 
   };
 
-  const activeFiltersCount = Object.values(filters).filter(v => v && v !== 'all').length + (sortByStock ? 1 : 0);
+  const updateFilter = (key: keyof CatalogFilters, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
+  };
+
+  const activeFiltersCount = Object.entries(filters).filter(([_, v]) => v && v !== 'all').length + (sortByStock ? 1 : 0);
 
   const getMarketplaceBadges = (productId: string) => {
     const mp = marketplaceData[productId];
@@ -162,14 +178,14 @@ export default function Catalog() {
 
   const renderPageNumbers = () => {
     const pages: (number | string)[] = [];
-    const { totalPages, page } = paginatedData;
+    const { totalPages } = paginatedData;
     if (totalPages <= 7) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       pages.push(1);
-      if (page > 3) pages.push('...');
-      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
-      if (page < totalPages - 2) pages.push('...');
+      if (currentPage > 3) pages.push('...');
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push('...');
       pages.push(totalPages);
     }
     return pages;
@@ -195,88 +211,163 @@ export default function Catalog() {
         </div>
       </PageHeader>
 
-      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input type="text" placeholder="Buscar por nome ou SKU..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 h-11 bg-card border-border/50 focus:border-primary" />
+      {/* Search and Filters */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input 
+              type="text" 
+              placeholder="Buscar por nome ou SKU..." 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              className="pl-10 h-11 bg-card border-border/50 focus:border-primary" 
+            />
+          </div>
+          
+          <Button 
+            variant={sortByStock === 'desc' ? 'default' : 'outline'} 
+            onClick={() => setSortByStock(sortByStock === 'desc' ? null : 'desc')} 
+            className="gap-2 h-11"
+          >
+            {sortByStock === 'desc' ? <ArrowDown className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
+            <span className="hidden sm:inline">Maior Estoque</span>
+            <span className="sm:hidden">Estoque</span>
+          </Button>
+          
+          <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2 h-11 relative">
+                <Filter className="w-4 h-4" />
+                <span className="hidden sm:inline">Filtros</span>
+                {activeFiltersCount > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-primary">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4" align="end">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-foreground">Filtros</h4>
+                  {activeFiltersCount > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
+                      <X className="w-3 h-3 mr-1" />
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Categoria</label>
+                    <Select value={filters.category || 'all'} onValueChange={(value) => updateFilter('category', value)}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        {categories.map(cat => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Fornecedor</label>
+                    <Select value={filters.supplier || 'all'} onValueChange={(value) => updateFilter('supplier', value)}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {suppliers.map(sup => <SelectItem key={sup.id} value={String(sup.id)}>{sup.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Status</label>
+                    <Select value={filters.status || 'all'} onValueChange={(value) => updateFilter('status', value)}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="active">Com Estoque</SelectItem>
+                        <SelectItem value="low_stock">Estoque Baixo (≤80)</SelectItem>
+                        <SelectItem value="out_of_stock">Sem Estoque</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Marketplace</label>
+                    <Select value={filters.marketplace || 'all'} onValueChange={(value) => updateFilter('marketplace', value)}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="amazon">Amazon</SelectItem>
+                        <SelectItem value="mercado_livre">Mercado Livre</SelectItem>
+                        <SelectItem value="both">Ambos</SelectItem>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button className="w-full" onClick={() => setFiltersOpen(false)}>Aplicar Filtros</Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
-        
-        <Button variant={sortByStock === 'desc' ? 'default' : 'outline'} onClick={() => setSortByStock(sortByStock === 'desc' ? null : 'desc')} className="gap-2">
-          {sortByStock === 'desc' ? <ArrowDown className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
-          <span className="hidden sm:inline">Maior Estoque</span>
-          <span className="sm:hidden">Estoque</span>
-        </Button>
-        
-        <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="gap-2 h-11 relative">
-              <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline">Filtros</span>
-              {activeFiltersCount > 0 && <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-primary">{activeFiltersCount}</Badge>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-4" align="end">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-semibold text-foreground">Filtros</h4>
-                {activeFiltersCount > 0 && <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs"><X className="w-3 h-3 mr-1" />Limpar</Button>}
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Categoria</label>
-                  <Select value={filters.category || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, category: value }))}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      {categories.map(cat => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Fornecedor</label>
-                  <Select value={filters.supplier || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, supplier: value }))}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {suppliers.map(sup => <SelectItem key={sup.id} value={String(sup.id)}>{sup.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Status</label>
-                  <Select value={filters.status || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="active">Ativo</SelectItem>
-                      <SelectItem value="low_stock">Estoque Baixo</SelectItem>
-                      <SelectItem value="out_of_stock">Sem Estoque</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Marketplace</label>
-                  <Select value={filters.marketplace || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, marketplace: value }))}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="amazon">Amazon</SelectItem>
-                      <SelectItem value="mercado_livre">Mercado Livre</SelectItem>
-                      <SelectItem value="both">Ambos</SelectItem>
-                      <SelectItem value="none">Nenhum</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button className="w-full" onClick={() => setFiltersOpen(false)}>Aplicar Filtros</Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+
+        {/* Active Filters Display */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Filtros ativos:</span>
+            {sortByStock === 'desc' && (
+              <Badge variant="secondary" className="gap-1">
+                Maior Estoque
+                <button onClick={() => setSortByStock(null)} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            {filters.category && filters.category !== 'all' && (
+              <Badge variant="secondary" className="gap-1">
+                Categoria: {categories.find(c => String(c.id) === filters.category)?.name}
+                <button onClick={() => updateFilter('category', 'all')} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            {filters.supplier && filters.supplier !== 'all' && (
+              <Badge variant="secondary" className="gap-1">
+                Fornecedor: {suppliers.find(s => String(s.id) === filters.supplier)?.name}
+                <button onClick={() => updateFilter('supplier', 'all')} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            {filters.status && filters.status !== 'all' && (
+              <Badge variant="secondary" className="gap-1">
+                Status: {filters.status === 'active' ? 'Com Estoque' : filters.status === 'low_stock' ? 'Estoque Baixo' : 'Sem Estoque'}
+                <button onClick={() => updateFilter('status', 'all')} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            {filters.marketplace && filters.marketplace !== 'all' && (
+              <Badge variant="secondary" className="gap-1">
+                Marketplace: {filters.marketplace === 'amazon' ? 'Amazon' : filters.marketplace === 'mercado_livre' ? 'Mercado Livre' : filters.marketplace === 'both' ? 'Ambos' : 'Nenhum'}
+                <button onClick={() => updateFilter('marketplace', 'all')} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          {paginatedData.total > 0 ? <>Mostrando <span className="font-semibold text-foreground">{((currentPage - 1) * limit) + 1}</span> - <span className="font-semibold text-foreground">{Math.min(currentPage * limit, paginatedData.total)}</span> de <span className="font-semibold text-foreground">{paginatedData.total.toLocaleString('pt-BR')}</span> produtos</> : 'Nenhum produto encontrado'}
+          {paginatedData.total > 0 ? (
+            <>
+              Mostrando <span className="font-semibold text-foreground">{((currentPage - 1) * limit) + 1}</span> - <span className="font-semibold text-foreground">{Math.min(currentPage * limit, paginatedData.total)}</span> de <span className="font-semibold text-foreground">{paginatedData.total.toLocaleString('pt-BR')}</span> produtos
+            </>
+          ) : (
+            'Nenhum produto encontrado'
+          )}
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Por página:</span>
@@ -320,20 +411,36 @@ export default function Catalog() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {paginatedData.products.map((product) => (
-                    <tr key={product.id} className={`table-row-hover group cursor-pointer hover:bg-primary/5 ${isSelling(product.id) ? 'bg-success/5' : ''}`} onClick={() => { setSelectedProduct(product); setModalOpen(true); }}>
+                    <tr 
+                      key={product.id} 
+                      className={`table-row-hover group cursor-pointer hover:bg-primary/5 transition-colors ${isSelling(product.id) ? 'bg-success/5' : ''}`} 
+                      onClick={() => { setSelectedProduct(product); setModalOpen(true); }}
+                    >
                       <td className="px-3 sm:px-4 py-4">
                         <div className="flex items-center gap-2 sm:gap-3">
-                          {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover border border-border" /> : <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-muted flex items-center justify-center"><Image className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" /></div>}
-                          <span className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 text-sm sm:text-base max-w-[150px] sm:max-w-[250px]">{product.name}</span>
+                          {product.imageUrl ? (
+                            <img src={product.imageUrl} alt={product.name} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover border border-border" />
+                          ) : (
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-muted flex items-center justify-center">
+                              <Image className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 text-sm sm:text-base max-w-[150px] sm:max-w-[250px]">
+                            {product.name}
+                          </span>
                         </div>
                       </td>
                       <td className="px-3 sm:px-4 py-4 text-sm text-muted-foreground font-mono hidden sm:table-cell">{product.sku}</td>
                       <td className="px-3 sm:px-4 py-4 text-sm text-muted-foreground hidden md:table-cell">{product.category}</td>
                       <td className="px-3 sm:px-4 py-4">
-                        <span className={`text-sm font-bold ${product.stock === 0 ? 'text-destructive' : product.stock <= 80 ? 'text-warning' : 'text-success'}`}>{product.stock}</span>
+                        <span className={`text-sm font-bold ${product.stock === 0 ? 'text-destructive' : product.stock <= 80 ? 'text-warning' : 'text-success'}`}>
+                          {product.stock}
+                        </span>
                       </td>
                       <td className="px-3 sm:px-4 py-4 text-sm font-semibold text-foreground">{formatCurrency(product.price)}</td>
-                      <td className="px-3 sm:px-4 py-4 hidden lg:table-cell">{getMarketplaceBadges(product.id) || <span className="text-xs text-muted-foreground">-</span>}</td>
+                      <td className="px-3 sm:px-4 py-4 hidden lg:table-cell">
+                        {getMarketplaceBadges(product.id) || <span className="text-xs text-muted-foreground">-</span>}
+                      </td>
                       <td className="px-3 sm:px-4 py-4 hidden sm:table-cell"><StatusBadge status={product.status} /></td>
                     </tr>
                   ))}
@@ -346,13 +453,25 @@ export default function Catalog() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
               <p className="text-sm text-muted-foreground">Página {currentPage} de {paginatedData.totalPages}</p>
               <div className="flex items-center gap-1 flex-wrap justify-center">
-                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(1)} disabled={currentPage === 1}><ChevronsLeft className="w-4 h-4" /></Button>
-                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}><ChevronLeft className="w-4 h-4" /></Button>
+                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(1)} disabled={currentPage === 1}>
+                  <ChevronsLeft className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
                 {renderPageNumbers().map((page, i) => typeof page === 'number' ? (
-                  <Button key={i} variant={page === currentPage ? 'default' : 'outline'} size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(page)}>{page}</Button>
-                ) : <span key={i} className="px-1 sm:px-2 text-muted-foreground">...</span>)}
-                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === paginatedData.totalPages}><ChevronRight className="w-4 h-4" /></Button>
-                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(paginatedData.totalPages)} disabled={currentPage === paginatedData.totalPages}><ChevronsRight className="w-4 h-4" /></Button>
+                  <Button key={i} variant={page === currentPage ? 'default' : 'outline'} size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(page)}>
+                    {page}
+                  </Button>
+                ) : (
+                  <span key={i} className="px-1 sm:px-2 text-muted-foreground">...</span>
+                ))}
+                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === paginatedData.totalPages}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => goToPage(paginatedData.totalPages)} disabled={currentPage === paginatedData.totalPages}>
+                  <ChevronsRight className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           )}
