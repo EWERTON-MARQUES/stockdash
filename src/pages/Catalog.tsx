@@ -162,18 +162,17 @@ export default function Catalog() {
 
       const data = await apiService.getProducts(page, currentLimit, search, filtersWithSort);
       const totalPages = Math.max(1, Math.ceil(data.total / currentLimit));
-      const safePage = Math.min(Math.max(1, page), totalPages);
-
-      // If user is on an invalid/empty page (common after changing "por página"), snap to last valid page.
-      if ((safePage !== page) || (data.total > 0 && data.products.length === 0 && page > 1)) {
-        setCurrentPage(safePage);
+      
+      // Reset to page 1 if current page exceeds valid range
+      if (page > totalPages) {
+        setCurrentPage(1);
         return;
       }
 
       setPaginatedData({
         ...data,
         totalPages,
-        page: safePage,
+        page,
         limit: currentLimit,
       });
     } finally {
@@ -181,17 +180,14 @@ export default function Catalog() {
     }
   }, [marketplaceData]);
 
+  // Reset to page 1 when limit changes
   useEffect(() => {
-    loadProducts(currentPage, searchQuery, filters, limit, sortByStock);
-  }, [currentPage, filters, limit, sortByStock, loadProducts]);
+    setCurrentPage(1);
+  }, [limit]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentPage(1);
-      loadProducts(1, searchQuery, filters, limit, sortByStock);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery, loadProducts, filters, limit, sortByStock]);
+    loadProducts(currentPage, searchQuery, filters, limit, sortByStock);
+  }, [currentPage, filters, sortByStock, loadProducts, searchQuery, limit]);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
