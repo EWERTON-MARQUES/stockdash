@@ -459,6 +459,59 @@ class ApiService {
     }
   }
 
+  // Save daily snapshot to database for historical charts
+  async saveDailySnapshot(): Promise<void> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if snapshot already exists for today
+      const { data: existing } = await supabase
+        .from('daily_stock_snapshots')
+        .select('id')
+        .eq('date', today)
+        .maybeSingle();
+      
+      // Get current stats
+      const allProducts = await this.getAllProductsForStats();
+      const totalProducts = allProducts.length;
+      const totalStock = allProducts.reduce((acc, p) => acc + p.stock, 0);
+      const totalValue = allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
+      const lowStockProducts = allProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
+      const outOfStockProducts = allProducts.filter(p => p.stock === 0).length;
+      
+      if (existing) {
+        // Update existing snapshot
+        await supabase
+          .from('daily_stock_snapshots')
+          .update({
+            total_products: totalProducts,
+            total_stock: totalStock,
+            total_value: totalValue,
+            low_stock_products: lowStockProducts,
+            out_of_stock_products: outOfStockProducts,
+          })
+          .eq('id', existing.id);
+      } else {
+        // Insert new snapshot
+        await supabase
+          .from('daily_stock_snapshots')
+          .insert({
+            date: today,
+            total_products: totalProducts,
+            total_stock: totalStock,
+            total_value: totalValue,
+            low_stock_products: lowStockProducts,
+            out_of_stock_products: outOfStockProducts,
+          });
+      }
+      
+      console.log('Daily snapshot saved for', today);
+    } catch (error) {
+      console.error('Error saving daily snapshot:', error);
+    }
+  }
+
   // Get products with recent movements (sorted by update date)
   async getRecentMovementProducts(): Promise<(Product & { movementType: 'entry' | 'exit' })[]> {
     const config = this.getConfig();

@@ -30,6 +30,9 @@ export default function Dashboard() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      // Save daily snapshot first (will update or create for today)
+      await apiService.saveDailySnapshot();
+      
       const [statsData, trendData, topData, catData] = await Promise.all([
         apiService.getDashboardStats(),
         apiService.getStockTrendData(),
