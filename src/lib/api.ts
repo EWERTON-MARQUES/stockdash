@@ -348,42 +348,67 @@ class ApiService {
     }
 
     try {
-      // Try the stock history endpoint
-      let data;
-      try {
-        data = await this.fetchWithAuth(`/catalog/products/${productId}/stock-history`);
-      } catch {
-        try {
-          data = await this.fetchWithAuth(`/catalog/products/${productId}/movements`);
-        } catch {
-          try {
-            data = await this.fetchWithAuth(`/products/${productId}/stock-movements`);
-          } catch {
-            try {
-              data = await this.fetchWithAuth(`/stock/movements?product_id=${productId}`);
-            } catch {
-              // Return empty if no movements endpoint available
-              return [];
-            }
+      // Fetch orders that contain this product
+      const data = await this.fetchWithAuth(`/my-orders?limit=50&offset=0&search=${productId}`);
+      
+      const orders = Array.isArray(data) ? data : (data?.results || data?.data || data?.orders || []);
+      
+      // Transform orders into stock movements
+      const movements: StockMovement[] = [];
+      
+      orders.forEach((order: any) => {
+        const orderItems = order.items || order.orderItems || order.products || [];
+        
+        orderItems.forEach((item: any) => {
+          // Check if this item matches the product
+          const itemProductId = String(item.productId || item.product_id || item.id);
+          
+          if (itemProductId === productId || item.sku === productId) {
+            movements.push({
+              id: String(order.id || Math.random()) + '-' + itemProductId,
+              productId: productId,
+              type: 'exit',
+              quantity: Math.abs(Number(item.quantity || item.qty || 1)),
+              previousStock: 0,
+              newStock: 0,
+              reason: `Pedido #${order.id || order.orderNumber || 'N/A'}`,
+              reference: order.integrationOrderId || order.orderNumber || String(order.id || ''),
+              userId: 'system',
+              userName: order.customerName || order.customer?.name || 'Cliente',
+              createdAt: order.createdAt || order.created_at || new Date().toISOString(),
+            });
           }
+        });
+      });
+      
+      // If no movements from orders, try stock history endpoints
+      if (movements.length === 0) {
+        try {
+          const stockData = await this.fetchWithAuth(`/catalog/products/${productId}/stock-history`);
+          const stockMovements = Array.isArray(stockData) ? stockData : (stockData?.data || stockData?.movements || stockData?.history || []);
+          
+          return stockMovements.map((m: any) => ({
+            id: String(m.id || Math.random()),
+            productId: String(m.product_id || m.productId || productId),
+            type: m.type || m.movementType || (m.quantity > 0 ? 'entry' : 'exit'),
+            quantity: Math.abs(Number(m.quantity || m.qty || 0)),
+            previousStock: Number(m.previous_stock || m.previousStock || m.oldQuantity || 0),
+            newStock: Number(m.new_stock || m.newStock || m.newQuantity || m.current_stock || 0),
+            reason: m.reason || m.description || m.note || m.obs || 'Movimentação',
+            reference: m.reference || m.order_id || m.document || m.orderId || '',
+            userId: String(m.user_id || m.userId || 'system'),
+            userName: m.user_name || m.userName || m.user?.name || 'Sistema',
+            createdAt: m.created_at || m.createdAt || m.date || new Date().toISOString(),
+          }));
+        } catch {
+          // No stock history available
         }
       }
       
-      const movements = Array.isArray(data) ? data : (data?.data || data?.movements || data?.history || []);
+      // Sort by date descending
+      movements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      return movements.map((m: any) => ({
-        id: String(m.id || Math.random()),
-        productId: String(m.product_id || m.productId || productId),
-        type: m.type || m.movementType || (m.quantity > 0 ? 'entry' : 'exit'),
-        quantity: Math.abs(Number(m.quantity || m.qty || 0)),
-        previousStock: Number(m.previous_stock || m.previousStock || m.oldQuantity || 0),
-        newStock: Number(m.new_stock || m.newStock || m.newQuantity || m.current_stock || 0),
-        reason: m.reason || m.description || m.note || m.obs || 'Movimentação',
-        reference: m.reference || m.order_id || m.document || m.orderId || '',
-        userId: String(m.user_id || m.userId || 'system'),
-        userName: m.user_name || m.userName || m.user?.name || 'Sistema',
-        createdAt: m.created_at || m.createdAt || m.date || new Date().toISOString(),
-      }));
+      return movements;
     } catch (error) {
       console.error('Error fetching movements:', error);
       return [];
