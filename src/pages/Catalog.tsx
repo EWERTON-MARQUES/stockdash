@@ -62,6 +62,8 @@ export default function Catalog() {
 
   useEffect(() => {
     async function loadFilters() {
+      // Load filters from all products to get complete list
+      await apiService.loadAllFilters();
       const [cats, sups] = await Promise.all([
         apiService.getCategories(),
         apiService.getSuppliers()

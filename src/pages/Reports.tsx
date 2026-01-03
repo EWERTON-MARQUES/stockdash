@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   BarChart3, Package, TrendingUp, TrendingDown, DollarSign, AlertTriangle, 
   XCircle, Filter, Download, RefreshCw, Calendar, Layers, Building2,
-  PieChart as PieChartIcon, ArrowUpDown, Target, Percent, Box, FileText
+  PieChart as PieChartIcon, ArrowUpDown, Target, Box, FileText
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -107,55 +107,54 @@ export default function Reports() {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   };
 
-  // Calculate metrics
+  // Calculate metrics - ESTOQUE ONLY (usando costPrice = Custo Wedrop)
   const totalProducts = filteredProducts.length;
   const totalStock = filteredProducts.reduce((acc, p) => acc + p.stock, 0);
-  const totalValue = filteredProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
-  const totalCost = filteredProducts.reduce((acc, p) => acc + (p.costPrice * p.stock), 0);
-  const potentialProfit = totalValue - totalCost;
-  const avgMargin = totalCost > 0 ? ((totalValue - totalCost) / totalCost * 100) : 0;
+  const totalCostValue = filteredProducts.reduce((acc, p) => acc + (p.costPrice * p.stock), 0);
   const lowStockCount = filteredProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
   const outOfStockCount = filteredProducts.filter(p => p.stock === 0).length;
   const avgStock = totalProducts > 0 ? totalStock / totalProducts : 0;
+  const inStockCount = filteredProducts.filter(p => p.stock > 80).length;
 
-  // Category analysis
+  // Category analysis - ESTOQUE ONLY
   const categoryAnalysis = categories.map(cat => {
     const catProducts = filteredProducts.filter(p => p.category === cat.name);
     const stock = catProducts.reduce((acc, p) => acc + p.stock, 0);
-    const value = catProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
-    const cost = catProducts.reduce((acc, p) => acc + (p.costPrice * p.stock), 0);
+    const costValue = catProducts.reduce((acc, p) => acc + (p.costPrice * p.stock), 0);
+    const lowStock = catProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
+    const outOfStock = catProducts.filter(p => p.stock === 0).length;
     return {
       name: cat.name,
       products: catProducts.length,
       stock,
-      value,
-      cost,
-      margin: cost > 0 ? ((value - cost) / cost * 100) : 0,
+      costValue,
+      lowStock,
+      outOfStock,
     };
-  }).filter(c => c.products > 0).sort((a, b) => b.value - a.value);
+  }).filter(c => c.products > 0).sort((a, b) => b.costValue - a.costValue);
 
   // Supplier analysis
   const supplierAnalysis = suppliers.map(sup => {
     const supProducts = filteredProducts.filter(p => p.supplier === sup.name);
     const stock = supProducts.reduce((acc, p) => acc + p.stock, 0);
-    const value = supProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
+    const costValue = supProducts.reduce((acc, p) => acc + (p.costPrice * p.stock), 0);
     const lowStock = supProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
     const outOfStock = supProducts.filter(p => p.stock === 0).length;
     return {
       name: sup.name,
       products: supProducts.length,
       stock,
-      value,
+      costValue,
       lowStock,
       outOfStock,
     };
-  }).filter(s => s.products > 0).sort((a, b) => b.value - a.value);
+  }).filter(s => s.products > 0).sort((a, b) => b.costValue - a.costValue);
 
   // ABC Analysis
   const abcProducts = [...filteredProducts]
     .map(p => ({
       ...p,
-      totalValue: p.price * p.stock,
+      totalCostValue: p.costPrice * p.stock,
       salesScore: (p.avgSellsQuantityPast30Days ?? 0) * 30 + (p.soldQuantity ?? 0),
     }))
     .sort((a, b) => b.salesScore - a.salesScore);
@@ -179,20 +178,20 @@ export default function Reports() {
 
   // Stock status distribution
   const stockDistribution = [
-    { name: 'Em Estoque', value: filteredProducts.filter(p => p.stock > 80).length, color: CHART_COLORS[1] },
+    { name: 'Em Estoque', value: inStockCount, color: CHART_COLORS[1] },
     { name: 'Estoque Baixo', value: lowStockCount, color: CHART_COLORS[2] },
     { name: 'Sem Estoque', value: outOfStockCount, color: CHART_COLORS[3] },
   ];
 
-  // Top products by value
-  const topByValue = [...filteredProducts]
-    .map(p => ({ name: p.name.substring(0, 30), value: p.price * p.stock, stock: p.stock }))
-    .sort((a, b) => b.value - a.value)
+  // Top products by cost value
+  const topByCostValue = [...filteredProducts]
+    .map(p => ({ name: p.name.substring(0, 30), costValue: p.costPrice * p.stock, stock: p.stock }))
+    .sort((a, b) => b.costValue - a.costValue)
     .slice(0, 10);
 
   // Top products by stock
   const topByStock = [...filteredProducts]
-    .map(p => ({ name: p.name.substring(0, 30), stock: p.stock, value: p.price * p.stock }))
+    .map(p => ({ name: p.name.substring(0, 30), stock: p.stock, costValue: p.costPrice * p.stock }))
     .sort((a, b) => b.stock - a.stock)
     .slice(0, 10);
 
@@ -231,8 +230,8 @@ export default function Reports() {
   return (
     <MainLayout>
       <PageHeader
-        title="Relatórios"
-        description="Análise completa do seu estoque e operação"
+        title="Relatórios de Estoque"
+        description="Análise completa do seu estoque de produtos"
       >
         <div className="flex items-center gap-3">
           {lastUpdate && (
@@ -305,7 +304,7 @@ export default function Reports() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-3 sm:gap-4 mb-6 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
+      <div className="grid gap-3 sm:gap-4 mb-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <Card>
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -319,7 +318,7 @@ export default function Reports() {
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-1">
               <Box className="w-4 h-4 text-success" />
-              <span className="text-xs text-muted-foreground">Estoque</span>
+              <span className="text-xs text-muted-foreground">Estoque Total</span>
             </div>
             <p className="text-lg sm:text-xl font-bold text-success">{formatNumber(totalStock)}</p>
           </CardContent>
@@ -328,27 +327,9 @@ export default function Reports() {
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="w-4 h-4 text-chart-1" />
-              <span className="text-xs text-muted-foreground">Valor</span>
+              <span className="text-xs text-muted-foreground">Custo Wedrop</span>
             </div>
-            <p className="text-sm sm:text-lg font-bold text-chart-1">{formatCurrency(totalValue)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">Lucro Pot.</span>
-            </div>
-            <p className="text-sm sm:text-lg font-bold text-primary">{formatCurrency(potentialProfit)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Percent className="w-4 h-4 text-warning" />
-              <span className="text-xs text-muted-foreground">Margem</span>
-            </div>
-            <p className="text-lg sm:text-xl font-bold text-warning">{avgMargin.toFixed(1)}%</p>
+            <p className="text-sm sm:text-lg font-bold text-chart-1">{formatCurrency(totalCostValue)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -364,7 +345,7 @@ export default function Reports() {
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className="w-4 h-4 text-warning" />
-              <span className="text-xs text-muted-foreground">Baixo</span>
+              <span className="text-xs text-muted-foreground">Estoque Baixo</span>
             </div>
             <p className="text-lg sm:text-xl font-bold text-warning">{formatNumber(lowStockCount)}</p>
           </CardContent>
@@ -373,7 +354,7 @@ export default function Reports() {
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-1">
               <XCircle className="w-4 h-4 text-destructive" />
-              <span className="text-xs text-muted-foreground">Zerado</span>
+              <span className="text-xs text-muted-foreground">Sem Estoque</span>
             </div>
             <p className="text-lg sm:text-xl font-bold text-destructive">{formatNumber(outOfStockCount)}</p>
           </CardContent>
@@ -459,18 +440,18 @@ export default function Reports() {
               </CardContent>
             </Card>
 
-            {/* Top by Value */}
+            {/* Top by Cost Value */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-success" />
-                    Top 10 por Valor em Estoque
+                    Top 10 por Custo Wedrop
                   </CardTitle>
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => exportToCSV(topByValue, 'top_valor_estoque')}
+                    onClick={() => exportToCSV(topByCostValue, 'top_custo_wedrop')}
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -479,12 +460,12 @@ export default function Reports() {
               <CardContent>
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topByValue} layout="vertical">
+                    <BarChart data={topByCostValue} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
                       <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                      <Bar dataKey="value" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="costValue" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} name="Custo Wedrop" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -492,18 +473,18 @@ export default function Reports() {
             </Card>
           </div>
 
-          {/* Category Value Distribution */}
+          {/* Category Stock Distribution */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Layers className="w-4 h-4 text-primary" />
-                  Valor por Categoria
+                  Estoque por Categoria
                 </CardTitle>
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => exportToCSV(categoryAnalysis, 'valor_por_categoria')}
+                  onClick={() => exportToCSV(categoryAnalysis, 'estoque_por_categoria')}
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -515,9 +496,9 @@ export default function Reports() {
                   <BarChart data={categoryAnalysis.slice(0, 10)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
-                    <YAxis tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
-                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                    <Bar dataKey="value" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                    <YAxis tickFormatter={(v) => formatNumber(v)} tick={{ fontSize: 10 }} />
+                    <Tooltip formatter={(v: number) => formatNumber(v)} />
+                    <Bar dataKey="stock" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} name="Estoque" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -552,9 +533,9 @@ export default function Reports() {
                       <TableHead>Categoria</TableHead>
                       <TableHead className="text-right">Produtos</TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead className="text-right">Valor Venda</TableHead>
-                      <TableHead className="text-right">Valor Custo</TableHead>
-                      <TableHead className="text-right">Margem %</TableHead>
+                      <TableHead className="text-right">Custo Wedrop</TableHead>
+                      <TableHead className="text-right">Estoque Baixo</TableHead>
+                      <TableHead className="text-right">Sem Estoque</TableHead>
                       <TableHead className="w-[150px]">Participação</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -564,18 +545,22 @@ export default function Reports() {
                         <TableCell className="font-medium">{cat.name}</TableCell>
                         <TableCell className="text-right">{formatNumber(cat.products)}</TableCell>
                         <TableCell className="text-right">{formatNumber(cat.stock)}</TableCell>
-                        <TableCell className="text-right text-success">{formatCurrency(cat.value)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{formatCurrency(cat.cost)}</TableCell>
+                        <TableCell className="text-right text-chart-1">{formatCurrency(cat.costValue)}</TableCell>
                         <TableCell className="text-right">
-                          <Badge variant={cat.margin >= 30 ? 'default' : cat.margin >= 15 ? 'secondary' : 'destructive'}>
-                            {cat.margin.toFixed(1)}%
+                          <Badge variant="outline" className="bg-warning/10 text-warning">
+                            {cat.lowStock}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="outline" className="bg-destructive/10 text-destructive">
+                            {cat.outOfStock}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Progress value={(cat.value / totalValue) * 100} className="h-2" />
+                            <Progress value={totalCostValue > 0 ? (cat.costValue / totalCostValue) * 100 : 0} className="h-2" />
                             <span className="text-xs text-muted-foreground w-12">
-                              {((cat.value / totalValue) * 100).toFixed(1)}%
+                              {totalCostValue > 0 ? ((cat.costValue / totalCostValue) * 100).toFixed(1) : '0'}%
                             </span>
                           </div>
                         </TableCell>
@@ -619,17 +604,17 @@ export default function Reports() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Margem por Categoria</CardTitle>
+                <CardTitle className="text-base">Custo Wedrop por Categoria</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={categoryAnalysis.slice(0, 8)} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10 }} />
+                      <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
-                      <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
-                      <Bar dataKey="margin" fill={CHART_COLORS[2]} radius={[0, 4, 4, 0]} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                      <Bar dataKey="costValue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} name="Custo Wedrop" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -665,7 +650,7 @@ export default function Reports() {
                       <TableHead>Fornecedor</TableHead>
                       <TableHead className="text-right">Produtos</TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead className="text-right">Custo Wedrop</TableHead>
                       <TableHead className="text-right">Estoque Baixo</TableHead>
                       <TableHead className="text-right">Sem Estoque</TableHead>
                       <TableHead>Saúde</TableHead>
@@ -681,7 +666,7 @@ export default function Reports() {
                           <TableCell className="font-medium">{sup.name}</TableCell>
                           <TableCell className="text-right">{formatNumber(sup.products)}</TableCell>
                           <TableCell className="text-right">{formatNumber(sup.stock)}</TableCell>
-                          <TableCell className="text-right text-success">{formatCurrency(sup.value)}</TableCell>
+                          <TableCell className="text-right text-chart-1">{formatCurrency(sup.costValue)}</TableCell>
                           <TableCell className="text-right">
                             <Badge variant="outline" className="bg-warning/10 text-warning">
                               {sup.lowStock}
@@ -712,39 +697,61 @@ export default function Reports() {
             </CardContent>
           </Card>
 
-          {/* Supplier Chart */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Top 10 Fornecedores por Valor</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={supplierAnalysis.slice(0, 10)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-45} textAnchor="end" height={100} />
-                    <YAxis tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
-                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                    <Bar dataKey="value" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Estoque por Fornecedor</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={supplierAnalysis.slice(0, 8)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+                      <YAxis tickFormatter={(v) => formatNumber(v)} tick={{ fontSize: 10 }} />
+                      <Tooltip formatter={(v: number) => formatNumber(v)} />
+                      <Bar dataKey="stock" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} name="Estoque" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Custo Wedrop por Fornecedor</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={supplierAnalysis.slice(0, 8)} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                      <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                      <Bar dataKey="costValue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} name="Custo Wedrop" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
-        {/* ABC Tab */}
+        {/* ABC Analysis Tab */}
         <TabsContent value="abc" className="space-y-6">
-          <div className="grid lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4 mb-6">
             <Card className="border-l-4 border-l-success">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Classe A (80% vendas)</p>
+                    <p className="text-sm text-muted-foreground">Classe A (80%)</p>
                     <p className="text-2xl font-bold text-success">{abcSummary.A}</p>
-                    <p className="text-xs text-muted-foreground">produtos prioritários</p>
+                    <p className="text-xs text-muted-foreground">Alta rotatividade</p>
                   </div>
-                  <Badge className="bg-success text-success-foreground text-lg px-3 py-1">A</Badge>
+                  <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
+                    <span className="text-xl font-bold text-success">A</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -752,23 +759,27 @@ export default function Reports() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Classe B (15% vendas)</p>
+                    <p className="text-sm text-muted-foreground">Classe B (15%)</p>
                     <p className="text-2xl font-bold text-warning">{abcSummary.B}</p>
-                    <p className="text-xs text-muted-foreground">produtos intermediários</p>
+                    <p className="text-xs text-muted-foreground">Média rotatividade</p>
                   </div>
-                  <Badge className="bg-warning text-warning-foreground text-lg px-3 py-1">B</Badge>
+                  <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
+                    <span className="text-xl font-bold text-warning">B</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-muted-foreground">
+            <Card className="border-l-4 border-l-muted">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Classe C (5% vendas)</p>
+                    <p className="text-sm text-muted-foreground">Classe C (5%)</p>
                     <p className="text-2xl font-bold text-muted-foreground">{abcSummary.C}</p>
-                    <p className="text-xs text-muted-foreground">produtos baixa rotação</p>
+                    <p className="text-xs text-muted-foreground">Baixa rotatividade</p>
                   </div>
-                  <Badge variant="secondary" className="text-lg px-3 py-1">C</Badge>
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-xl font-bold text-muted-foreground">C</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -779,7 +790,7 @@ export default function Reports() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Target className="w-4 h-4 text-primary" />
-                  Produtos por Classificação ABC
+                  Classificação ABC
                 </CardTitle>
                 <Button 
                   variant="outline" 
@@ -788,10 +799,11 @@ export default function Reports() {
                     abcClassified.map(p => ({
                       sku: p.sku,
                       nome: p.name,
-                      classe: p.classification,
+                      classificacao: p.classification,
                       estoque: p.stock,
-                      vendas_score: p.salesScore,
-                      valor_estoque: p.totalValue,
+                      custoWedrop: p.costPrice,
+                      valorTotalCusto: p.totalCostValue,
+                      mediaSaida30d: p.avgSellsQuantityPast30Days || 0,
                     })),
                     'curva_abc'
                   )}
@@ -806,37 +818,37 @@ export default function Reports() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Classe</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>Produto</TableHead>
+                      <TableHead className="text-center">Classe</TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead className="text-right">Score Vendas</TableHead>
-                      <TableHead className="text-right">Valor Estoque</TableHead>
-                      <TableHead className="text-right">% Acum.</TableHead>
+                      <TableHead className="text-right">Custo Wedrop</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead className="text-right">Média Saída/30d</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {abcClassified.slice(0, 30).map((p, idx) => (
                       <TableRow key={idx}>
-                        <TableCell>
+                        <TableCell className="font-mono text-xs">{p.sku}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{p.name}</TableCell>
+                        <TableCell className="text-center">
                           <Badge 
                             className={
-                              p.classification === 'A' ? 'bg-success text-success-foreground' :
-                              p.classification === 'B' ? 'bg-warning text-warning-foreground' :
-                              'bg-muted text-muted-foreground'
+                              p.classification === 'A' 
+                                ? 'bg-success/10 text-success border-success/20' 
+                                : p.classification === 'B'
+                                ? 'bg-warning/10 text-warning border-warning/20'
+                                : 'bg-muted text-muted-foreground'
                             }
                           >
                             {p.classification}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{p.name}</TableCell>
                         <TableCell className="text-right">{formatNumber(p.stock)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(p.salesScore)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(p.totalValue)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {p.accumulatedPercentage.toFixed(1)}%
-                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(p.costPrice)}</TableCell>
+                        <TableCell className="text-right text-chart-1">{formatCurrency(p.totalCostValue)}</TableCell>
+                        <TableCell className="text-right">{(p.avgSellsQuantityPast30Days ?? 0).toFixed(1)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -849,18 +861,17 @@ export default function Reports() {
         {/* Stock Tab */}
         <TabsContent value="stock" className="space-y-6">
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Top by Stock Quantity */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Box className="w-4 h-4 text-primary" />
-                    Top 10 por Quantidade em Estoque
+                    Top 10 por Quantidade
                   </CardTitle>
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => exportToCSV(topByStock, 'top_quantidade_estoque')}
+                    onClick={() => exportToCSV(topByStock, 'top_quantidade')}
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -873,85 +884,51 @@ export default function Reports() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis type="number" tick={{ fontSize: 10 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
-                      <Tooltip formatter={(v: number) => formatNumber(v)} />
-                      <Bar dataKey="stock" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
+                      <Tooltip />
+                      <Bar dataKey="stock" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} name="Estoque" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Stock Health */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Saúde do Estoque</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-chart-1" />
+                    Top 10 por Custo Wedrop
+                  </CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => exportToCSV(topByCostValue, 'top_custo')}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Produtos com estoque saudável (&gt;80 un)</span>
-                      <span className="font-bold text-success">
-                        {filteredProducts.filter(p => p.stock > 80).length}
-                      </span>
-                    </div>
-                    <Progress 
-                      value={(filteredProducts.filter(p => p.stock > 80).length / totalProducts) * 100} 
-                      className="h-3 [&>div]:bg-success"
-                    />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Produtos com estoque baixo (1-80 un)</span>
-                      <span className="font-bold text-warning">{lowStockCount}</span>
-                    </div>
-                    <Progress 
-                      value={(lowStockCount / totalProducts) * 100} 
-                      className="h-3 [&>div]:bg-warning"
-                    />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Produtos sem estoque (0 un)</span>
-                      <span className="font-bold text-destructive">{outOfStockCount}</span>
-                    </div>
-                    <Progress 
-                      value={(outOfStockCount / totalProducts) * 100} 
-                      className="h-3 [&>div]:bg-destructive"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-border">
-                  <h4 className="text-sm font-semibold mb-3">Resumo Financeiro</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-muted/30 rounded-lg p-3">
-                      <p className="text-muted-foreground">Custo Total</p>
-                      <p className="text-lg font-bold">{formatCurrency(totalCost)}</p>
-                    </div>
-                    <div className="bg-muted/30 rounded-lg p-3">
-                      <p className="text-muted-foreground">Valor de Venda</p>
-                      <p className="text-lg font-bold text-success">{formatCurrency(totalValue)}</p>
-                    </div>
-                    <div className="bg-muted/30 rounded-lg p-3">
-                      <p className="text-muted-foreground">Lucro Potencial</p>
-                      <p className="text-lg font-bold text-primary">{formatCurrency(potentialProfit)}</p>
-                    </div>
-                    <div className="bg-muted/30 rounded-lg p-3">
-                      <p className="text-muted-foreground">Margem Média</p>
-                      <p className="text-lg font-bold text-warning">{avgMargin.toFixed(1)}%</p>
-                    </div>
-                  </div>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topByCostValue} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                      <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                      <Bar dataKey="costValue" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} name="Custo Wedrop" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Full Stock List */}
+          {/* Stock Details Table */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Lista Completa de Estoque</CardTitle>
+                <CardTitle className="text-base">Detalhamento do Estoque</CardTitle>
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -962,29 +939,29 @@ export default function Reports() {
                       categoria: p.category,
                       fornecedor: p.supplier,
                       estoque: p.stock,
-                      preco: p.price,
-                      custo: p.costPrice,
-                      valor_total: p.price * p.stock,
-                      status: p.status,
+                      custoWedrop: p.costPrice,
+                      valorTotalCusto: p.costPrice * p.stock,
+                      status: p.stock === 0 ? 'Sem Estoque' : p.stock <= 80 ? 'Estoque Baixo' : 'Em Estoque',
                     })),
-                    'lista_estoque_completa'
+                    'detalhamento_estoque'
                   )}
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Exportar Tudo
+                  Exportar
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto max-h-[400px]">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>SKU</TableHead>
                       <TableHead>Produto</TableHead>
                       <TableHead>Categoria</TableHead>
+                      <TableHead>Fornecedor</TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead className="text-right">Preço</TableHead>
+                      <TableHead className="text-right">Custo Wedrop</TableHead>
                       <TableHead className="text-right">Valor Total</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -994,20 +971,23 @@ export default function Reports() {
                       <TableRow key={idx}>
                         <TableCell className="font-mono text-xs">{p.sku}</TableCell>
                         <TableCell className="max-w-[200px] truncate">{p.name}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{p.category}</TableCell>
-                        <TableCell className="text-right font-bold">{formatNumber(p.stock)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(p.price)}</TableCell>
-                        <TableCell className="text-right text-success">{formatCurrency(p.price * p.stock)}</TableCell>
+                        <TableCell className="text-muted-foreground">{p.category}</TableCell>
+                        <TableCell className="text-muted-foreground">{p.supplier}</TableCell>
+                        <TableCell className="text-right font-medium">{formatNumber(p.stock)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(p.costPrice)}</TableCell>
+                        <TableCell className="text-right text-chart-1">{formatCurrency(p.costPrice * p.stock)}</TableCell>
                         <TableCell>
                           <Badge 
                             variant="outline"
                             className={
-                              p.stock === 0 ? 'bg-destructive/10 text-destructive' :
-                              p.stock <= 80 ? 'bg-warning/10 text-warning' :
-                              'bg-success/10 text-success'
+                              p.stock === 0 
+                                ? 'bg-destructive/10 text-destructive' 
+                                : p.stock <= 80 
+                                ? 'bg-warning/10 text-warning' 
+                                : 'bg-success/10 text-success'
                             }
                           >
-                            {p.stock === 0 ? 'Zerado' : p.stock <= 80 ? 'Baixo' : 'OK'}
+                            {p.stock === 0 ? 'Sem Estoque' : p.stock <= 80 ? 'Baixo' : 'OK'}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -1015,198 +995,231 @@ export default function Reports() {
                   </TableBody>
                 </Table>
               </div>
-              {filteredProducts.length > 50 && (
-                <p className="text-sm text-muted-foreground text-center mt-4">
-                  Exibindo 50 de {filteredProducts.length} produtos. Use o botão exportar para ver todos.
-                </p>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Trends Tab */}
         <TabsContent value="trends" className="space-y-6">
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Stock Trend */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-primary" />
-                  Evolução do Estoque
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  {snapshots.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={snapshots}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatNumber(v)} />
-                        <Tooltip 
-                          formatter={(v: number) => formatNumber(v)}
-                          labelFormatter={(l) => `Data: ${formatShortDate(l)}`}
-                        />
-                        <Area 
-                          type="monotone" 
-                          dataKey="total_stock" 
-                          stroke="hsl(var(--primary))" 
-                          fill="hsl(var(--primary)/0.2)"
-                          strokeWidth={2}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                      <p>Dados históricos serão exibidos após alguns dias de uso</p>
+          {snapshots.length > 0 ? (
+            <>
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                      Evolução do Estoque
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={snapshots}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 10 }} />
+                          <Tooltip 
+                            labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                            formatter={(v: number) => formatNumber(v)}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="total_stock" 
+                            stroke={CHART_COLORS[0]} 
+                            fill={`${CHART_COLORS[0]}33`}
+                            name="Estoque Total"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
 
-            {/* Value Trend */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-success" />
-                  Evolução do Valor em Estoque
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  {snapshots.length > 0 ? (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-chart-1" />
+                      Evolução do Custo Wedrop
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={snapshots}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fontSize: 10 }} />
+                          <YAxis tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                          <Tooltip 
+                            labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                            formatter={(v: number) => formatCurrency(v)}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="total_value" 
+                            stroke={CHART_COLORS[1]} 
+                            fill={`${CHART_COLORS[1]}33`}
+                            name="Custo Wedrop"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-warning" />
+                    Evolução de Alertas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={snapshots}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} />
+                        <YAxis tick={{ fontSize: 10 }} />
                         <Tooltip 
-                          formatter={(v: number) => formatCurrency(v)}
-                          labelFormatter={(l) => `Data: ${formatShortDate(l)}`}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
                         />
                         <Line 
                           type="monotone" 
-                          dataKey="total_value" 
-                          stroke="hsl(var(--success))" 
+                          dataKey="low_stock_products" 
+                          stroke={CHART_COLORS[2]} 
                           strokeWidth={2}
-                          dot={{ fill: 'hsl(var(--success))', r: 3 }}
+                          name="Estoque Baixo"
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="out_of_stock_products" 
+                          stroke={CHART_COLORS[3]} 
+                          strokeWidth={2}
+                          name="Sem Estoque"
                         />
                       </LineChart>
                     </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                      <p>Dados históricos serão exibidos após alguns dias de uso</p>
-                    </div>
-                  )}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Sem dados históricos</h3>
+                <p className="text-muted-foreground">
+                  Os dados de tendência serão coletados automaticamente ao acessar o Dashboard.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Alerts Tab */}
+        <TabsContent value="alerts" className="space-y-6">
+          <div className="grid sm:grid-cols-2 gap-4 mb-6">
+            <Card className="border-l-4 border-l-warning">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-8 h-8 text-warning" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Produtos com Estoque Baixo</p>
+                    <p className="text-2xl font-bold text-warning">{lowStockCount}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-destructive">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <XCircle className="w-8 h-8 text-destructive" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Produtos Sem Estoque</p>
+                    <p className="text-2xl font-bold text-destructive">{outOfStockCount}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Product Health Trend */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-warning" />
-                Evolução de Produtos com Problema
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                {snapshots.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={snapshots}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fontSize: 10 }} />
-                      <YAxis tick={{ fontSize: 10 }} />
-                      <Tooltip labelFormatter={(l) => `Data: ${formatShortDate(l)}`} />
-                      <Bar dataKey="low_stock_products" name="Estoque Baixo" fill={CHART_COLORS[2]} />
-                      <Bar dataKey="out_of_stock_products" name="Sem Estoque" fill={CHART_COLORS[3]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    <p>Dados históricos serão exibidos após alguns dias de uso</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Alerts Tab */}
-        <TabsContent value="alerts" className="space-y-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
-                  Produtos que Precisam de Atenção
-                </CardTitle>
-                <Badge variant="destructive">{needsAttention.length} itens</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Produtos com estoque baixo e alta demanda - risco de ruptura
-              </p>
-            </CardHeader>
-            <CardContent>
-              {needsAttention.length > 0 ? (
+          {needsAttention.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-warning" />
+                    Produtos que Precisam de Atenção
+                    <Badge variant="outline" className="ml-2">Alta demanda + Baixo estoque</Badge>
+                  </CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => exportToCSV(
+                      needsAttention.map(p => ({
+                        sku: p.sku,
+                        nome: p.name,
+                        estoque: p.stock,
+                        mediaSaida7d: p.avgSellsQuantityPast7Days || 0,
+                        custoWedrop: p.costPrice,
+                      })),
+                      'produtos_atencao'
+                    )}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>SKU</TableHead>
                         <TableHead>Produto</TableHead>
-                        <TableHead>Fornecedor</TableHead>
                         <TableHead className="text-right">Estoque</TableHead>
-                        <TableHead className="text-right">Média 7d</TableHead>
-                        <TableHead className="text-right">Dias Restantes</TableHead>
-                        <TableHead>Urgência</TableHead>
+                        <TableHead className="text-right">Média Saída/7d</TableHead>
+                        <TableHead className="text-right">Dias de Estoque</TableHead>
+                        <TableHead className="text-right">Custo Wedrop</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {needsAttention.map((p, idx) => {
-                        const daysLeft = p.avgSellsQuantityPast7Days && p.avgSellsQuantityPast7Days > 0 
-                          ? Math.floor(p.stock / p.avgSellsQuantityPast7Days)
+                        const daysOfStock = p.avgSellsQuantityPast7Days && p.avgSellsQuantityPast7Days > 0 
+                          ? Math.round(p.stock / p.avgSellsQuantityPast7Days)
                           : 999;
                         return (
                           <TableRow key={idx}>
                             <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                            <TableCell className="max-w-[200px] truncate font-medium">{p.name}</TableCell>
-                            <TableCell className="text-muted-foreground text-xs">{p.supplier}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{p.name}</TableCell>
                             <TableCell className="text-right">
                               <Badge variant="outline" className="bg-warning/10 text-warning">
                                 {p.stock}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right">{p.avgSellsQuantityPast7Days ?? 0}</TableCell>
-                            <TableCell className="text-right font-bold">
-                              {daysLeft === 999 ? '-' : `${daysLeft} dias`}
-                            </TableCell>
-                            <TableCell>
+                            <TableCell className="text-right">{(p.avgSellsQuantityPast7Days ?? 0).toFixed(1)}</TableCell>
+                            <TableCell className="text-right">
                               <Badge 
-                                variant={daysLeft <= 3 ? 'destructive' : daysLeft <= 7 ? 'default' : 'secondary'}
+                                variant="outline"
+                                className={daysOfStock <= 7 ? 'bg-destructive/10 text-destructive' : daysOfStock <= 14 ? 'bg-warning/10 text-warning' : ''}
                               >
-                                {daysLeft <= 3 ? 'CRÍTICO' : daysLeft <= 7 ? 'ALTO' : 'MÉDIO'}
+                                {daysOfStock} dias
                               </Badge>
                             </TableCell>
+                            <TableCell className="text-right">{formatCurrency(p.costPrice)}</TableCell>
                           </TableRow>
                         );
                       })}
                     </TableBody>
                   </Table>
                 </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <AlertTriangle className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-muted-foreground">Nenhum produto em situação crítica</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Zero Stock Products */}
+          {/* Products without stock */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -1223,8 +1236,7 @@ export default function Reports() {
                       nome: p.name,
                       categoria: p.category,
                       fornecedor: p.supplier,
-                      preco: p.price,
-                      media_vendas_7d: p.avgSellsQuantityPast7Days ?? 0,
+                      custoWedrop: p.costPrice,
                     })),
                     'produtos_sem_estoque'
                   )}
@@ -1235,7 +1247,7 @@ export default function Reports() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto max-h-[400px]">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1243,39 +1255,22 @@ export default function Reports() {
                       <TableHead>Produto</TableHead>
                       <TableHead>Categoria</TableHead>
                       <TableHead>Fornecedor</TableHead>
-                      <TableHead className="text-right">Preço</TableHead>
-                      <TableHead className="text-right">Média Vendas 7d</TableHead>
+                      <TableHead className="text-right">Custo Wedrop</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts
-                      .filter(p => p.stock === 0)
-                      .sort((a, b) => (b.avgSellsQuantityPast7Days ?? 0) - (a.avgSellsQuantityPast7Days ?? 0))
-                      .slice(0, 30)
-                      .map((p, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{p.name}</TableCell>
-                          <TableCell className="text-muted-foreground text-xs">{p.category}</TableCell>
-                          <TableCell className="text-muted-foreground text-xs">{p.supplier}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(p.price)}</TableCell>
-                          <TableCell className="text-right">
-                            {(p.avgSellsQuantityPast7Days ?? 0) > 0 ? (
-                              <Badge variant="destructive">{p.avgSellsQuantityPast7Days}</Badge>
-                            ) : (
-                              <span className="text-muted-foreground">0</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                    {filteredProducts.filter(p => p.stock === 0).slice(0, 20).map((p, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-mono text-xs">{p.sku}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{p.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{p.category}</TableCell>
+                        <TableCell className="text-muted-foreground">{p.supplier}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(p.costPrice)}</TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
-              {outOfStockCount > 30 && (
-                <p className="text-sm text-muted-foreground text-center mt-4">
-                  Exibindo 30 de {outOfStockCount} produtos sem estoque.
-                </p>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
