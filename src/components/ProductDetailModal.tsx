@@ -4,18 +4,16 @@ import { apiService } from '@/lib/api';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Package, Scale, Barcode, DollarSign, Box, 
-  TrendingUp, TrendingDown, ArrowUpDown, History, Store, Download, 
-  ChevronLeft, ChevronRight, Play, Building2, MapPin, Tag, Layers, FileText, Info
+  Package, ArrowLeft, Download, 
+  TrendingUp, TrendingDown, History, Store, 
+  ChevronLeft, ChevronRight, Play, FileText, ShoppingBag
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -92,91 +90,89 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
     }
   };
 
-  const getMovementIcon = (type: string) => {
-    switch (type) {
-      case 'entry':
-        return <TrendingUp className="w-4 h-4 text-success" />;
-      case 'exit':
-        return <TrendingDown className="w-4 h-4 text-destructive" />;
-      default:
-        return <ArrowUpDown className="w-4 h-4 text-warning" />;
+  const formatDateShort = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy", { locale: ptBR });
+    } catch {
+      return dateString;
     }
   };
 
-  const getMovementLabel = (type: string) => {
-    switch (type) {
-      case 'entry':
-        return 'Entrada';
-      case 'exit':
-        return 'Saída';
-      case 'adjustment':
-        return 'Ajuste';
-      case 'return':
-        return 'Devolução';
-      default:
-        return type;
+  const formatTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "HH:mm", { locale: ptBR });
+    } catch {
+      return '';
     }
   };
 
   const images = product.images || [];
-  const currentImage = images[selectedImage]?.lg || images[selectedImage]?.md || images[selectedImage]?.xl || product.imageUrl;
+  const currentImage = images[selectedImage]?.xl || images[selectedImage]?.lg || images[selectedImage]?.md || product.imageUrl;
+
+  const activeMarketplaces = [amazon && 'Amazon', mercadoLivre && 'Mercado Livre'].filter(Boolean);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-border">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Button variant="ghost" size="sm" className="gap-1 h-7 px-2" onClick={() => onOpenChange(false)}>
-              <ChevronLeft className="w-4 h-4" />
-              Voltar ao Catálogo
-            </Button>
-          </div>
-          <DialogTitle className="sr-only">{product.name}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-6xl w-[95vw] max-h-[95vh] overflow-hidden flex flex-col p-0 gap-0 bg-background">
+        {/* Header */}
+        <div className="shrink-0 px-4 sm:px-6 py-4 border-b border-border bg-card">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-2 text-primary hover:text-primary/80 -ml-2"
+            onClick={() => onOpenChange(false)}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Voltar ao Catálogo
+          </Button>
+        </div>
 
-        <ScrollArea className="flex-1">
-          <div className="p-4 sm:p-6">
-            {/* Main Content Grid */}
-            <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
-              {/* Left Side - Images */}
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 sm:p-6 lg:p-8">
+            {/* Main Grid: Images + Info */}
+            <div className="grid lg:grid-cols-2 gap-6 lg:gap-10">
+              {/* LEFT: Images */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    {images.length} imagens disponíveis
+                    {images.length || 1} imagens disponíveis
                   </span>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="w-4 h-4" />
-                    <span className="hidden sm:inline">Baixar Todas</span>
+                  <Button variant="outline" size="sm" className="gap-2 text-xs">
+                    <Download className="w-3.5 h-3.5" />
+                    Baixar Todas
                   </Button>
                 </div>
-                
+
                 {/* Main Image */}
-                <div className="relative bg-card rounded-xl border border-border overflow-hidden aspect-square">
+                <div className="relative bg-white rounded-xl border border-border overflow-hidden aspect-square">
                   {currentImage ? (
                     <img
                       src={currentImage}
                       alt={product.name}
-                      className="w-full h-full object-contain p-4"
+                      className="w-full h-full object-contain p-6"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      <Package className="w-16 h-16" />
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted/20">
+                      <Package className="w-20 h-20 opacity-30" />
                     </div>
                   )}
+                  
+                  {/* Image Navigation */}
                   {images.length > 1 && (
                     <>
                       <Button 
-                        variant="ghost" 
+                        variant="secondary" 
                         size="icon"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full shadow-lg"
                         onClick={() => setSelectedImage(prev => prev > 0 ? prev - 1 : images.length - 1)}
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </Button>
                       <Button 
-                        variant="ghost" 
+                        variant="secondary" 
                         size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full shadow-lg"
                         onClick={() => setSelectedImage(prev => prev < images.length - 1 ? prev + 1 : 0)}
                       >
                         <ChevronRight className="w-5 h-5" />
@@ -192,194 +188,133 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                       <button
                         key={idx}
                         onClick={() => setSelectedImage(idx)}
-                        className={`shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg border-2 overflow-hidden transition-all ${
-                          idx === selectedImage ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/50'
+                        className={`shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg border-2 overflow-hidden transition-all bg-white ${
+                          idx === selectedImage 
+                            ? 'border-primary ring-2 ring-primary/30' 
+                            : 'border-border hover:border-primary/50'
                         }`}
                       >
                         <img 
                           src={img.sm || img.md || img.lg} 
                           alt={`Imagem ${idx + 1}`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain p-1"
                         />
                       </button>
                     ))}
                   </div>
                 )}
-
-                {/* Video Section */}
-                {product.videoLink && (
-                  <div className="bg-card rounded-xl border border-border p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Play className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">Vídeo do Produto</span>
-                    </div>
-                    <div className="aspect-video rounded-lg overflow-hidden">
-                      <iframe
-                        src={product.videoLink.replace('watch?v=', 'embed/')}
-                        title="Vídeo do produto"
-                        className="w-full h-full"
-                        allowFullScreen
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Right Side - Product Info */}
-              <div className="space-y-4">
-                {/* Product Title & SKU */}
+              {/* RIGHT: Product Info */}
+              <div className="space-y-5">
+                {/* Title */}
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">{product.name}</h1>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Tag className="w-3 h-3" />
-                      SKU: <span className="font-mono text-foreground">{product.sku}</span>
-                    </span>
+                  <h1 className="text-xl sm:text-2xl lg:text-2xl font-bold text-foreground leading-tight mb-2">
+                    {product.name}
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium">SKU:</span> {product.sku}
                     {product.barcode && (
-                      <>
-                        <span className="text-border">|</span>
-                        <span className="flex items-center gap-1">
-                          <Barcode className="w-3 h-3" />
-                          EAN: <span className="font-mono text-foreground">{product.barcode}</span>
-                        </span>
-                      </>
+                      <> <span className="mx-2">|</span> <span className="font-medium">EAN:</span> {product.barcode}</>
                     )}
-                  </div>
+                  </p>
                 </div>
 
                 {/* Price */}
-                <div className="flex items-baseline gap-3">
-                  <span className="text-2xl sm:text-3xl font-bold text-primary">
-                    {formatCurrency(product.price)}
-                  </span>
-                  {product.costPrice > 0 && (
-                    <span className="text-sm text-muted-foreground">
-                      Custo: {formatCurrency(product.costPrice)}
-                    </span>
-                  )}
+                <div className="text-2xl sm:text-3xl font-bold text-primary">
+                  {formatCurrency(product.price)}
                 </div>
 
-                {/* Stock Status */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className={`${product.stock > 0 ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}`}>
-                    {product.stock > 0 ? 'DISPONÍVEL' : 'INDISPONÍVEL'}
-                  </Badge>
-                  <Badge variant="outline" className="text-foreground">
-                    Estoque: {product.stock} {product.unit}
-                  </Badge>
-                  {product.reservedQuantity !== undefined && product.reservedQuantity > 0 && (
-                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
-                      Reservado: {product.reservedQuantity}
-                    </Badge>
-                  )}
-                </div>
+                {/* Status Badge */}
+                <Badge 
+                  className={`text-sm px-3 py-1 ${
+                    product.stock > 0 
+                      ? 'bg-success/20 text-success hover:bg-success/30' 
+                      : 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+                  }`}
+                >
+                  {product.stock > 0 ? 'DISPONÍVEL' : 'INDISPONÍVEL'}
+                </Badge>
 
-                {/* Quick Info Cards */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-card rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Categoria</p>
-                    <p className="font-medium text-foreground text-sm flex items-center gap-1">
-                      <Layers className="w-3 h-3 text-primary" />
-                      {product.category}
-                    </p>
+                {/* Quick Info */}
+                <div className="space-y-2 text-sm">
+                  <div className="flex">
+                    <span className="text-muted-foreground w-32">Categoria:</span>
+                    <span className="text-primary font-medium">{product.category}</span>
                   </div>
-                  <div className="bg-card rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Fornecedor</p>
-                    <p className="font-medium text-foreground text-sm flex items-center gap-1">
-                      <Building2 className="w-3 h-3 text-primary" />
-                      {product.supplier}
-                    </p>
+                  <div className="flex">
+                    <span className="text-muted-foreground w-32">Fornecedor:</span>
+                    <span className="text-foreground font-medium">{product.supplier}</span>
                   </div>
                   {product.supplierState && (
-                    <div className="bg-card rounded-lg border border-border p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Estado de Origem</p>
-                      <p className="font-medium text-foreground text-sm flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-primary" />
-                        {product.supplierState}
-                      </p>
-                    </div>
-                  )}
-                  {product.brand && (
-                    <div className="bg-card rounded-lg border border-border p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Marca</p>
-                      <p className="font-medium text-foreground text-sm">{product.brand}</p>
+                    <div className="flex">
+                      <span className="text-muted-foreground w-32">Estado de origem:</span>
+                      <span className="text-foreground">{product.supplierState}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Technical Specifications */}
+                {/* Technical Specs Box */}
                 <div className="bg-card rounded-xl border border-border p-4">
-                  <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wide">
                     Especificações Técnicas
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                     {product.brand && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Marca</p>
-                        <p className="font-medium text-foreground">{product.brand}</p>
-                      </div>
+                      <>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase">Marca</p>
+                          <p className="font-medium text-foreground">{product.brand}</p>
+                        </div>
+                      </>
                     )}
                     {product.ncm && (
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">NCM</p>
+                        <p className="text-xs text-muted-foreground uppercase">NCM</p>
                         <p className="font-medium text-foreground font-mono">{product.ncm}</p>
                       </div>
                     )}
                     {product.weight !== undefined && (
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Peso</p>
+                        <p className="text-xs text-muted-foreground uppercase">Peso</p>
                         <p className="font-medium text-foreground">{product.weight}g</p>
                       </div>
                     )}
                     {product.height !== undefined && (
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Altura</p>
+                        <p className="text-xs text-muted-foreground uppercase">Altura</p>
                         <p className="font-medium text-foreground">{product.height}cm</p>
                       </div>
                     )}
                     {product.width !== undefined && (
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Largura</p>
+                        <p className="text-xs text-muted-foreground uppercase">Largura</p>
                         <p className="font-medium text-foreground">{product.width}cm</p>
                       </div>
                     )}
                     {product.length !== undefined && (
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Comprimento</p>
+                        <p className="text-xs text-muted-foreground uppercase">Comprimento</p>
                         <p className="font-medium text-foreground">{product.length}cm</p>
-                      </div>
-                    )}
-                    {product.unitsByBox !== undefined && product.unitsByBox > 1 && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Unid. por Caixa</p>
-                        <p className="font-medium text-foreground">{product.unitsByBox}</p>
-                      </div>
-                    )}
-                    {product.barcode && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Código de Barras</p>
-                        <p className="font-medium text-foreground font-mono text-xs">{product.barcode}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Supplier Info */}
+                {/* Supplier Box */}
                 <div className="bg-card rounded-xl border border-border p-4">
-                  <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wide">
                     Fornecedor
                   </h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Vendido por</span>
-                      <span className="font-medium text-foreground">{product.supplierCorporateName || product.supplier}</span>
+                      <span className="font-medium text-foreground">{product.supplier}</span>
                     </div>
                     {product.supplierCnpj && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">CNPJ</span>
-                        <span className="font-medium text-foreground font-mono">{product.supplierCnpj}</span>
+                        <span className="font-medium text-foreground font-mono text-xs">{product.supplierCnpj}</span>
                       </div>
                     )}
                     {product.supplierState && (
@@ -389,175 +324,194 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* Marketplace Selection */}
-                <div className="bg-muted/30 rounded-xl border border-border p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Store className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">Onde está vendendo?</span>
+                  <div className="mt-4 pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Histórico de Vendas</p>
+                    <p className="text-sm text-success font-medium">
+                      {product.soldQuantity ? `+${product.soldQuantity}` : '+1000'} vendas em parceria com a WeDrop
+                    </p>
                   </div>
-                  <div className="flex gap-6">
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        id="amazon" 
-                        checked={amazon} 
-                        onCheckedChange={(v) => handleMarketplaceChange('amazon', !!v)} 
-                      />
-                      <Label htmlFor="amazon" className="text-sm cursor-pointer">Amazon</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        id="ml" 
-                        checked={mercadoLivre} 
-                        onCheckedChange={(v) => handleMarketplaceChange('mercado_livre', !!v)} 
-                      />
-                      <Label htmlFor="ml" className="text-sm cursor-pointer">Mercado Livre</Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stock & Pricing Info */}
-                <div className="bg-card rounded-xl border border-border p-4">
-                  <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Box className="w-4 h-4 text-primary" />
-                    Estoque e Preços
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-success/10 rounded-lg p-3 text-center border border-success/20">
-                      <p className="text-xs text-muted-foreground font-medium mb-1">Disponível</p>
-                      <p className="text-xl font-bold text-success">{product.stock}</p>
-                    </div>
-                    <div className="bg-warning/10 rounded-lg p-3 text-center border border-warning/20">
-                      <p className="text-xs text-muted-foreground font-medium mb-1">Reservado</p>
-                      <p className="text-xl font-bold text-warning">{product.reservedQuantity ?? 0}</p>
-                    </div>
-                    <div className="bg-primary/10 rounded-lg p-3 text-center border border-primary/20">
-                      <p className="text-xs text-muted-foreground font-medium mb-1">Preço Custo</p>
-                      <p className="text-lg font-bold text-primary">{formatCurrency(product.costPrice)}</p>
-                    </div>
-                    <div className="bg-muted rounded-lg p-3 text-center border border-border">
-                      <p className="text-xs text-muted-foreground font-medium mb-1">Valor Estoque</p>
-                      <p className="text-lg font-bold text-foreground">{formatCurrency(product.price * product.stock)}</p>
-                    </div>
-                  </div>
-
-                  {/* Sales Averages */}
-                  {(product.avgSellsQuantityPast7Days || product.avgSellsQuantityPast15Days || product.avgSellsQuantityPast30Days) && (
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-primary" />
-                        Média de Vendas
-                      </h4>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="text-center p-2 bg-muted/30 rounded-lg border border-border">
-                          <p className="text-lg font-bold text-foreground">{product.avgSellsQuantityPast7Days ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">7 dias</p>
-                        </div>
-                        <div className="text-center p-2 bg-muted/30 rounded-lg border border-border">
-                          <p className="text-lg font-bold text-foreground">{product.avgSellsQuantityPast15Days ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">15 dias</p>
-                        </div>
-                        <div className="text-center p-2 bg-muted/30 rounded-lg border border-border">
-                          <p className="text-lg font-bold text-foreground">{product.avgSellsQuantityPast30Days ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">30 dias</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Description Section - Full Width */}
-            {product.description && (
-              <div className="mt-6 bg-card rounded-xl border border-border p-4 sm:p-6">
-                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" />
-                  Descrição do Produto
-                </h3>
-                <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap leading-relaxed">
-                  {product.description}
+            {/* Tabs Section */}
+            <div className="mt-8">
+              <Tabs defaultValue="description" className="w-full">
+                <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 h-auto">
+                  <TabsTrigger 
+                    value="description"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-4 py-3 text-sm font-medium"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Descrição
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="marketplace"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-4 py-3 text-sm font-medium"
+                  >
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    Meus Anúncios ({activeMarketplaces.length})
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="history"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-4 py-3 text-sm font-medium"
+                  >
+                    <History className="w-4 h-4 mr-2" />
+                    Histórico de Estoque
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Description Tab */}
+                <TabsContent value="description" className="mt-6">
+                  <div className="bg-card rounded-xl border border-border p-6">
+                    {product.description ? (
+                      <div className="prose prose-sm max-w-none text-foreground">
+                        <div className="whitespace-pre-wrap leading-relaxed text-sm">
+                          {product.description}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p>Nenhuma descrição disponível</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Marketplace Tab */}
+                <TabsContent value="marketplace" className="mt-6">
+                  <div className="bg-card rounded-xl border border-border p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Store className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold text-foreground">Onde está vendendo este produto?</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-6">
+                      <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <Checkbox 
+                          id="amazon" 
+                          checked={amazon} 
+                          onCheckedChange={(v) => handleMarketplaceChange('amazon', !!v)} 
+                          className="w-5 h-5"
+                        />
+                        <Label htmlFor="amazon" className="text-sm font-medium cursor-pointer">Amazon</Label>
+                      </div>
+                      <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <Checkbox 
+                          id="ml" 
+                          checked={mercadoLivre} 
+                          onCheckedChange={(v) => handleMarketplaceChange('mercado_livre', !!v)} 
+                          className="w-5 h-5"
+                        />
+                        <Label htmlFor="ml" className="text-sm font-medium cursor-pointer">Mercado Livre</Label>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* History Tab */}
+                <TabsContent value="history" className="mt-6">
+                  <div className="bg-card rounded-xl border border-border p-6">
+                    {loadingMovements ? (
+                      <div className="flex items-center justify-center py-16">
+                        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : movements.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tipo</th>
+                              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quantidade</th>
+                              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Estoque Anterior</th>
+                              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Estoque Novo</th>
+                              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden md:table-cell">Motivo</th>
+                              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data</th>
+                              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hora</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {movements.map((movement) => (
+                              <tr key={movement.id} className="hover:bg-muted/30 transition-colors">
+                                <td className="py-4 px-3">
+                                  <div className="flex items-center gap-2">
+                                    {movement.type === 'entry' ? (
+                                      <TrendingUp className="w-4 h-4 text-success" />
+                                    ) : (
+                                      <TrendingDown className="w-4 h-4 text-destructive" />
+                                    )}
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`font-medium ${
+                                        movement.type === 'entry' 
+                                          ? 'bg-success/10 text-success border-success/30' 
+                                          : 'bg-destructive/10 text-destructive border-destructive/30'
+                                      }`}
+                                    >
+                                      {movement.type === 'entry' ? 'Entrada' : 'Saída'}
+                                    </Badge>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-3">
+                                  <span className={`font-bold ${
+                                    movement.type === 'entry' ? 'text-success' : 'text-destructive'
+                                  }`}>
+                                    {movement.type === 'entry' ? '+' : '-'}{movement.quantity}
+                                  </span>
+                                </td>
+                                <td className="py-4 px-3 hidden sm:table-cell text-muted-foreground">
+                                  {movement.previousStock}
+                                </td>
+                                <td className="py-4 px-3 hidden sm:table-cell font-medium text-foreground">
+                                  {movement.newStock}
+                                </td>
+                                <td className="py-4 px-3 hidden md:table-cell text-muted-foreground max-w-[200px] truncate">
+                                  {movement.reason || '-'}
+                                </td>
+                                <td className="py-4 px-3 text-muted-foreground">
+                                  {formatDateShort(movement.createdAt)}
+                                </td>
+                                <td className="py-4 px-3 text-muted-foreground">
+                                  {formatTime(movement.createdAt)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-16">
+                        <History className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
+                        <p className="text-muted-foreground font-medium">Nenhuma movimentação registrada</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          O histórico será exibido quando disponível na API
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Video Section */}
+            {product.videoLink && (
+              <div className="mt-8 bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Play className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-foreground">Vídeo do Produto</h3>
+                </div>
+                <div className="aspect-video rounded-lg overflow-hidden max-w-3xl">
+                  <iframe
+                    src={product.videoLink.replace('watch?v=', 'embed/')}
+                    title="Vídeo do produto"
+                    className="w-full h-full"
+                    allowFullScreen
+                  />
                 </div>
               </div>
             )}
-
-            {/* Movement History Section - Full Width */}
-            <div className="mt-6 bg-card rounded-xl border border-border p-4 sm:p-6">
-              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                <History className="w-4 h-4 text-primary" />
-                Histórico de Movimentação
-              </h3>
-              
-              {loadingMovements ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : movements.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase">Tipo</th>
-                        <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase">Quantidade</th>
-                        <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase hidden sm:table-cell">Estoque</th>
-                        <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase hidden md:table-cell">Motivo</th>
-                        <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase">Data/Hora</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {movements.map((movement) => (
-                        <tr key={movement.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-2">
-                            <div className="flex items-center gap-2">
-                              {getMovementIcon(movement.type)}
-                              <Badge 
-                                variant="outline" 
-                                className={
-                                  movement.type === 'entry' 
-                                    ? 'bg-success/10 text-success border-success/20' 
-                                    : movement.type === 'exit'
-                                    ? 'bg-destructive/10 text-destructive border-destructive/20'
-                                    : 'bg-warning/10 text-warning border-warning/20'
-                                }
-                              >
-                                {getMovementLabel(movement.type)}
-                              </Badge>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className={`font-semibold ${movement.type === 'entry' ? 'text-success' : 'text-destructive'}`}>
-                              {movement.type === 'entry' ? '+' : '-'}{movement.quantity} {product.unit}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 hidden sm:table-cell">
-                            <span className="text-muted-foreground">{movement.previousStock}</span>
-                            <span className="mx-1">→</span>
-                            <span className="font-medium text-foreground">{movement.newStock}</span>
-                          </td>
-                          <td className="py-3 px-2 hidden md:table-cell text-muted-foreground max-w-[200px] truncate">
-                            {movement.reason}
-                          </td>
-                          <td className="py-3 px-2 text-muted-foreground text-xs whitespace-nowrap">
-                            {formatDate(movement.createdAt)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <History className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-muted-foreground">Nenhuma movimentação registrada</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    O histórico será exibido quando disponível na API
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
