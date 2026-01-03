@@ -514,29 +514,99 @@ class ApiService {
     }
   }
 
-  // Get stock trend data for charts - based on real API data (current snapshot)
-  async getStockTrendData(): Promise<{ date: string; stock: number; value: number }[]> {
-    const allProducts = await this.getAllProductsForStats();
-    
-    const totalStock = allProducts.reduce((acc, p) => acc + p.stock, 0);
-    const totalValue = allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
-    
-    // Generate last 7 days based on current values
-    // Since the API doesn't provide historical data, we show current snapshot as constant
-    const days = 7;
-    const data = [];
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      data.push({
-        date: date.toISOString().split('T')[0],
-        stock: totalStock,
-        value: totalValue,
-      });
+  // Save daily snapshot to database
+  async saveDailySnapshot(): Promise<void> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const allProducts = await this.getAllProductsForStats();
+      const totalStock = allProducts.reduce((acc, p) => acc + p.stock, 0);
+      const totalValue = allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
+      const totalProducts = await this.getTotalProductsCount();
+      const lowStockProducts = allProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
+      const outOfStockProducts = allProducts.filter(p => p.stock === 0).length;
+      
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Upsert today's snapshot (use 'as any' until types are regenerated)
+      const { error } = await (supabase as any)
+        .from('daily_stock_snapshots')
+        .upsert({
+          date: today,
+          total_stock: totalStock,
+          total_value: totalValue,
+          total_products: totalProducts,
+          low_stock_products: lowStockProducts,
+          out_of_stock_products: outOfStockProducts,
+        }, { onConflict: 'date' });
+      
+      if (error) {
+        console.error('Error saving daily snapshot:', error);
+      } else {
+        console.log('Daily snapshot saved:', today);
+      }
+    } catch (error) {
+      console.error('Error saving daily snapshot:', error);
     }
-    
-    return data;
+  }
+
+  // Get stock trend data from database history
+  async getStockTrendData(): Promise<{ date: string; stock: number; value: number }[]> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Get last 7 days of snapshots
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const { data: snapshots, error } = await (supabase as any)
+        .from('daily_stock_snapshots')
+        .select('date, total_stock, total_value')
+        .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+        .order('date', { ascending: true });
+      
+      if (error || !snapshots || snapshots.length === 0) {
+        // If no historical data, save current and return it
+        await this.saveDailySnapshot();
+        
+        const allProducts = await this.getAllProductsForStats();
+        const totalStock = allProducts.reduce((acc, p) => acc + p.stock, 0);
+        const totalValue = allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
+        const today = new Date().toISOString().split('T')[0];
+        
+        return [{ date: today, stock: totalStock, value: totalValue }];
+      }
+      
+      // Fill in missing days with interpolation
+      const result: { date: string; stock: number; value: number }[] = [];
+      const snapshotMap = new Map<string, { stock: number; value: number }>();
+      
+      (snapshots as any[]).forEach((s: any) => {
+        snapshotMap.set(s.date, { stock: Number(s.total_stock), value: Number(s.total_value) });
+      });
+      
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        if (snapshotMap.has(dateStr)) {
+          const data = snapshotMap.get(dateStr)!;
+          result.push({ date: dateStr, stock: data.stock, value: data.value });
+        } else if (result.length > 0) {
+          // Use last known value
+          result.push({ date: dateStr, stock: result[result.length - 1].stock, value: result[result.length - 1].value });
+        }
+      }
+      
+      // Save current day snapshot
+      await this.saveDailySnapshot();
+      
+      return result.length > 0 ? result : [{ date: new Date().toISOString().split('T')[0], stock: 0, value: 0 }];
+    } catch (error) {
+      console.error('Error fetching stock trend:', error);
+      return [];
+    }
   }
 
   // Get top selling products for chart
