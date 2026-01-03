@@ -211,10 +211,6 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                   <h1 className="text-xl sm:text-2xl lg:text-2xl font-bold text-foreground leading-tight mb-2">
                     {product.name}
                   </h1>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                    <span><span className="font-medium">SKU:</span> {product.sku}</span>
-                    {product.barcode && <span><span className="font-medium">EAN:</span> {product.barcode}</span>}
-                  </div>
                 </div>
 
                 {/* Price */}
@@ -243,12 +239,6 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                     <span className="text-muted-foreground w-36">Fornecedor:</span>
                     <span className="text-foreground font-medium">{product.supplier}</span>
                   </div>
-                  {product.supplierState && (
-                    <div className="flex">
-                      <span className="text-muted-foreground w-36">Estado de origem:</span>
-                      <span className="text-foreground">{product.supplierState}</span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Technical Specs Box */}
@@ -262,12 +252,6 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                       <div>
                         <p className="text-xs text-muted-foreground uppercase">Marca</p>
                         <p className="font-medium text-foreground">{product.brand}</p>
-                      </div>
-                    )}
-                    {product.ncm && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase">NCM</p>
-                        <p className="font-medium text-foreground font-mono">{product.ncm}</p>
                       </div>
                     )}
                     {product.weight !== undefined && (
@@ -338,10 +322,10 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                         <span className="font-medium text-foreground font-mono text-xs">{product.supplierCorporate.stateRegistration}</span>
                       </div>
                     )}
-                    {product.supplierCorporate?.city && (
+                    {product.supplierCorporate?.city && product.supplierCorporate?.state && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Cidade</span>
-                        <span className="font-medium text-foreground">{product.supplierCorporate.city}</span>
+                        <span className="text-muted-foreground">Cidade/UF</span>
+                        <span className="font-medium text-foreground">{product.supplierCorporate.city}/{product.supplierCorporate.state}</span>
                       </div>
                     )}
                   </div>
