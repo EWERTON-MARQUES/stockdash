@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Box, Menu, X, TrendingUp, DollarSign, Bell } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Box, Menu, X, TrendingUp, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -33,11 +33,6 @@ const menuItems = [
     icon: BarChart3,
     label: 'Relatórios',
     path: '/relatorios'
-  },
-  {
-    icon: Bell,
-    label: 'Alertas Telegram',
-    path: '/telegram'
   },
   {
     icon: Settings,
