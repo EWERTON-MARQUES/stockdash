@@ -420,14 +420,23 @@ class ApiService {
     }
 
     try {
+      // First, get the total count from the API
+      const initialData = await this.fetchWithAuth(`/catalog?limit=1&offset=0&page=1&search=&categoryId=0&suplierId=&brand=&orderBy=id%7Cdesc`);
+      const totalFromApi = initialData?.total || 0;
+      
       // Fetch all products for accurate calculations
       const allProducts = await this.getAllProductsForStats();
       
-      const totalProducts = allProducts.length;
+      // Use API total if available, otherwise use fetched products length
+      const totalProducts = totalFromApi > 0 ? totalFromApi : allProducts.length;
       const totalStock = allProducts.reduce((acc, p) => acc + p.stock, 0);
+      
+      // Count low stock (stock between 1-80) and out of stock (stock = 0)
       const lowStockProducts = allProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
       const outOfStockProducts = allProducts.filter(p => p.stock === 0).length;
       const totalValue = allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
+      
+      console.log('Dashboard Stats:', { totalProducts, totalStock, lowStockProducts, outOfStockProducts, totalValue });
       
       return {
         totalProducts,

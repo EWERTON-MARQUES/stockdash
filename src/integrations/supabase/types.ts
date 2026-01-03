@@ -161,6 +161,39 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_stock_snapshots: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          low_stock_products: number
+          out_of_stock_products: number
+          total_products: number
+          total_stock: number
+          total_value: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          low_stock_products?: number
+          out_of_stock_products?: number
+          total_products?: number
+          total_stock?: number
+          total_value?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          low_stock_products?: number
+          out_of_stock_products?: number
+          total_products?: number
+          total_stock?: number
+          total_value?: number
+        }
+        Relationships: []
+      }
       financial_accounts: {
         Row: {
           created_at: string
