@@ -160,34 +160,35 @@ export default function Dashboard() {
       {/* Charts Row */}
       <div className="grid gap-4 sm:gap-6 mb-6 lg:grid-cols-2">
         {/* Stock Trend Chart */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+        <div className="glass-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
               <TrendingUp className="w-4 h-4 text-primary" />
               Tendência de Estoque
             </h3>
-            <Badge variant="outline" className="text-xs">Últimos 7 dias</Badge>
+            <Badge variant="outline" className="text-xs border-border/50">Últimos 7 dias</Badge>
           </div>
-          <div className="h-[180px] sm:h-[200px]">
+          <div className="h-[180px] sm:h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stockTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                 <XAxis 
                   dataKey="date" 
                   tickFormatter={formatShortDate}
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
                 />
                 <YAxis 
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
                   tickFormatter={(v) => formatNumber(v)}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
                   }}
                   formatter={(value: number) => [formatNumber(value), 'Estoque']}
                   labelFormatter={(label) => `Data: ${formatShortDate(label)}`}
@@ -196,9 +197,9 @@ export default function Dashboard() {
                   type="monotone" 
                   dataKey="stock" 
                   stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))', r: 3 }}
-                  activeDot={{ r: 5 }}
+                  strokeWidth={3}
+                  dot={{ fill: 'hsl(var(--primary))', r: 4, strokeWidth: 2, stroke: 'hsl(var(--card))' }}
+                  activeDot={{ r: 6, strokeWidth: 2, stroke: 'hsl(var(--card))' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -206,34 +207,35 @@ export default function Dashboard() {
         </div>
 
         {/* Top Products Chart */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+        <div className="glass-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
               <BarChart3 className="w-4 h-4 text-success" />
               Top Produtos (Vendas)
             </h3>
           </div>
-          <div className="h-[180px] sm:h-[200px]">
+          <div className="h-[180px] sm:h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topProducts} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
                 <YAxis 
                   dataKey="name" 
                   type="category" 
                   width={80} 
-                  tick={{ fontSize: 9 }}
-                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
                   }}
                   formatter={(value: number) => [formatNumber(value), 'Vendas']}
                 />
-                <Bar dataKey="sales" fill="hsl(var(--success))" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="sales" fill="hsl(var(--success))" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -243,34 +245,35 @@ export default function Dashboard() {
       {/* Second Charts Row */}
       <div className="grid gap-4 sm:gap-6 mb-6 lg:grid-cols-2">
         {/* Value Trend Chart */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+        <div className="glass-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
               <DollarSign className="w-4 h-4 text-warning" />
               Valor do Estoque
             </h3>
-            <Badge variant="outline" className="text-xs">Últimos 7 dias</Badge>
+            <Badge variant="outline" className="text-xs border-border/50">Últimos 7 dias</Badge>
           </div>
-          <div className="h-[180px] sm:h-[200px]">
+          <div className="h-[180px] sm:h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stockTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                 <XAxis 
                   dataKey="date" 
                   tickFormatter={formatShortDate}
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
                 />
                 <YAxis 
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
                   tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
                   }}
                   formatter={(value: number) => [formatCurrency(value), 'Valor']}
                   labelFormatter={(label) => `Data: ${formatShortDate(label)}`}
@@ -279,9 +282,9 @@ export default function Dashboard() {
                   type="monotone" 
                   dataKey="value" 
                   stroke="hsl(var(--warning))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--warning))', r: 3 }}
-                  activeDot={{ r: 5 }}
+                  strokeWidth={3}
+                  dot={{ fill: 'hsl(var(--warning))', r: 4, strokeWidth: 2, stroke: 'hsl(var(--card))' }}
+                  activeDot={{ r: 6, strokeWidth: 2, stroke: 'hsl(var(--card))' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -289,14 +292,14 @@ export default function Dashboard() {
         </div>
 
         {/* Category Distribution */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+        <div className="glass-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
-              <Package className="w-4 h-4 text-chart-1" />
+              <Package className="w-4 h-4 text-primary" />
               Distribuição por Categoria
             </h3>
           </div>
-          <div className="h-[180px] sm:h-[200px]">
+          <div className="h-[180px] sm:h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -305,9 +308,11 @@ export default function Dashboard() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius={35}
-                  outerRadius={60}
-                  paddingAngle={2}
+                  innerRadius={40}
+                  outerRadius={70}
+                  paddingAngle={3}
+                  strokeWidth={2}
+                  stroke="hsl(var(--background))"
                 >
                   {categoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -317,21 +322,22 @@ export default function Dashboard() {
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
                   }}
                   formatter={(value: number, name: string) => [formatNumber(value), name]}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex flex-wrap gap-2 justify-center mt-2">
+          <div className="flex flex-wrap gap-2 justify-center mt-3">
             {categoryData.slice(0, 4).map((item, index) => (
-              <div key={item.name} className="flex items-center gap-1 text-xs">
+              <div key={item.name} className="flex items-center gap-1.5 text-xs bg-muted/30 px-2 py-1 rounded-lg">
                 <div 
-                  className="w-2 h-2 rounded-full" 
+                  className="w-2.5 h-2.5 rounded-full" 
                   style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                 />
-                <span className="text-muted-foreground truncate max-w-[60px] sm:max-w-[80px]">{item.name}</span>
+                <span className="text-muted-foreground truncate max-w-[80px]">{item.name}</span>
               </div>
             ))}
           </div>
@@ -339,15 +345,15 @@ export default function Dashboard() {
       </div>
 
       {/* Products with Latest Movements */}
-      <div className="bg-card rounded-xl border border-border shadow-sm animate-fade-in">
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border">
+      <div className="glass-card animate-fade-in overflow-hidden">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border/50">
           <div>
             <h2 className="font-semibold text-foreground text-sm sm:text-base">Produtos com Últimas Movimentações</h2>
             <p className="text-xs sm:text-sm text-muted-foreground">Produtos com entradas e saídas recentes</p>
           </div>
           <Link
             to="/catalogo"
-            className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+            className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
           >
             Ver todos
             <ArrowRight className="w-4 h-4" />
@@ -356,7 +362,7 @@ export default function Dashboard() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-muted/30">
+              <tr className="border-b border-border/50 bg-muted/20">
                 <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Produto
                 </th>
