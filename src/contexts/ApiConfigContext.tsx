@@ -31,6 +31,8 @@ export function ApiConfigProvider({ children }: ApiConfigProviderProps) {
   const loadConfig = async () => {
     setIsLoading(true);
     try {
+      // Wait for apiService to initialize and load config
+      await apiService.waitForInit();
       const loadedConfig = await apiService.getConfigAsync();
       setConfig(loadedConfig);
     } finally {
@@ -39,7 +41,15 @@ export function ApiConfigProvider({ children }: ApiConfigProviderProps) {
   };
 
   useEffect(() => {
-    loadConfig();
+    // Check if apiService is already ready (config pre-loaded)
+    if (apiService.isReady()) {
+      apiService.getConfigAsync().then(c => {
+        setConfig(c);
+        setIsLoading(false);
+      });
+    } else {
+      loadConfig();
+    }
   }, []);
 
   return (

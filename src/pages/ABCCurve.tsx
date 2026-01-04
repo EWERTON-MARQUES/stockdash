@@ -144,40 +144,40 @@ export default function ABCCurve() {
   const ProductTable = ({ products }: { products: ABCProduct[] }) => (
     <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Produto</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">SKU</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Estoque</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Score Vendas</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">% Acumulado</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Valor Estoque</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Curva</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Produto</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase hidden sm:table-cell">SKU</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Estoque</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase hidden md:table-cell">Score</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase hidden lg:table-cell">% Acum.</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase hidden md:table-cell">Valor</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Curva</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {products.map((product, idx) => (
               <tr key={product.id} className="hover:bg-muted/20 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-muted-foreground w-6">{idx + 1}</span>
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-muted-foreground w-5 hidden sm:inline">{idx + 1}</span>
                     {product.imageUrl && (
-                      <img src={product.imageUrl} alt={product.name} className="w-8 h-8 rounded object-cover" />
+                      <img src={product.imageUrl} alt={product.name} className="w-8 h-8 rounded object-cover hidden sm:block" />
                     )}
-                    <span className="font-medium text-foreground line-clamp-1 max-w-[200px]">{product.name}</span>
+                    <span className="font-medium text-foreground line-clamp-2 max-w-[120px] sm:max-w-[200px]">{product.name}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground font-mono">{product.sku}</td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3 text-muted-foreground font-mono hidden sm:table-cell">{product.sku}</td>
+                <td className="px-3 py-3">
                   <span className={`font-semibold ${product.stock === 0 ? 'text-destructive' : product.stock <= 80 ? 'text-warning' : 'text-foreground'}`}>
                     {product.stock}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">{product.salesScore.toFixed(0)}</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{product.cumulativePercentage.toFixed(1)}%</td>
-                <td className="px-4 py-3 text-sm font-medium text-foreground">{formatCurrency(product.price * product.stock)}</td>
-                <td className="px-4 py-3">{getCurveBadge(product.curveClass)}</td>
+                <td className="px-3 py-3 font-semibold text-foreground hidden md:table-cell">{product.salesScore.toFixed(0)}</td>
+                <td className="px-3 py-3 text-muted-foreground hidden lg:table-cell">{product.cumulativePercentage.toFixed(1)}%</td>
+                <td className="px-3 py-3 font-medium text-foreground hidden md:table-cell">{formatCurrency(product.price * product.stock)}</td>
+                <td className="px-3 py-3">{getCurveBadge(product.curveClass)}</td>
               </tr>
             ))}
           </tbody>
@@ -219,33 +219,33 @@ export default function ABCCurve() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 mb-6 sm:grid-cols-3">
-        <div className="bg-card rounded-xl p-5 border border-success/20 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-5 h-5 text-success" />
-            <span className="font-semibold text-success">Curva A</span>
+      <div className="grid gap-3 mb-6 grid-cols-1 sm:grid-cols-3">
+        <div className="bg-card rounded-xl p-4 sm:p-5 border border-success/20 shadow-sm">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+            <span className="font-semibold text-success text-sm sm:text-base">Curva A</span>
           </div>
-          <p className="text-3xl font-bold text-foreground">{stats.totalA}</p>
-          <p className="text-xs text-muted-foreground">produtos ({stats.percentA}% do total)</p>
-          <p className="text-sm font-medium text-success mt-2">{formatCurrency(stats.valueA)}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats.totalA}</p>
+          <p className="text-xs text-muted-foreground">produtos ({stats.percentA}%)</p>
+          <p className="text-xs sm:text-sm font-medium text-success mt-1 sm:mt-2 break-all">{formatCurrency(stats.valueA)}</p>
         </div>
-        <div className="bg-card rounded-xl p-5 border border-warning/20 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Minus className="w-5 h-5 text-warning" />
-            <span className="font-semibold text-warning">Curva B</span>
+        <div className="bg-card rounded-xl p-4 sm:p-5 border border-warning/20 shadow-sm">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <Minus className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+            <span className="font-semibold text-warning text-sm sm:text-base">Curva B</span>
           </div>
-          <p className="text-3xl font-bold text-foreground">{stats.totalB}</p>
-          <p className="text-xs text-muted-foreground">produtos ({stats.percentB}% do total)</p>
-          <p className="text-sm font-medium text-warning mt-2">{formatCurrency(stats.valueB)}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats.totalB}</p>
+          <p className="text-xs text-muted-foreground">produtos ({stats.percentB}%)</p>
+          <p className="text-xs sm:text-sm font-medium text-warning mt-1 sm:mt-2 break-all">{formatCurrency(stats.valueB)}</p>
         </div>
-        <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingDown className="w-5 h-5 text-muted-foreground" />
-            <span className="font-semibold text-muted-foreground">Curva C</span>
+        <div className="bg-card rounded-xl p-4 sm:p-5 border border-border shadow-sm">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+            <span className="font-semibold text-muted-foreground text-sm sm:text-base">Curva C</span>
           </div>
-          <p className="text-3xl font-bold text-foreground">{stats.totalC}</p>
-          <p className="text-xs text-muted-foreground">produtos ({stats.percentC}% do total)</p>
-          <p className="text-sm font-medium text-muted-foreground mt-2">{formatCurrency(stats.valueC)}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats.totalC}</p>
+          <p className="text-xs text-muted-foreground">produtos ({stats.percentC}%)</p>
+          <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1 sm:mt-2 break-all">{formatCurrency(stats.valueC)}</p>
         </div>
       </div>
 
@@ -326,11 +326,11 @@ export default function ABCCurve() {
         </div>
       ) : (
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
-            <TabsTrigger value="all">Todos ({products.length})</TabsTrigger>
-            <TabsTrigger value="A" className="text-success">Curva A ({stats.totalA})</TabsTrigger>
-            <TabsTrigger value="B" className="text-warning">Curva B ({stats.totalB})</TabsTrigger>
-            <TabsTrigger value="C">Curva C ({stats.totalC})</TabsTrigger>
+          <TabsList className="flex flex-wrap h-auto gap-1 p-1 bg-muted/50 mb-4">
+            <TabsTrigger value="all" className="text-xs sm:text-sm">Todos ({products.length})</TabsTrigger>
+            <TabsTrigger value="A" className="text-xs sm:text-sm text-success">A ({stats.totalA})</TabsTrigger>
+            <TabsTrigger value="B" className="text-xs sm:text-sm text-warning">B ({stats.totalB})</TabsTrigger>
+            <TabsTrigger value="C" className="text-xs sm:text-sm">C ({stats.totalC})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all">

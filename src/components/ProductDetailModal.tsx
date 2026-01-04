@@ -123,30 +123,31 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col p-0">
-        <DialogHeader className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-border">
+      <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] sm:max-h-[95vh] flex flex-col p-0">
+        <DialogHeader className="shrink-0 px-3 sm:px-6 pt-3 sm:pt-5 pb-2 sm:pb-3 border-b border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Button variant="ghost" size="sm" className="gap-1 h-7 px-2" onClick={() => onOpenChange(false)}>
+            <Button variant="ghost" size="sm" className="gap-1 h-7 px-2 text-xs sm:text-sm" onClick={() => onOpenChange(false)}>
               <ChevronLeft className="w-4 h-4" />
-              Voltar ao Catálogo
+              <span className="hidden sm:inline">Voltar ao Catálogo</span>
+              <span className="sm:hidden">Voltar</span>
             </Button>
           </div>
           <DialogTitle className="sr-only">{product.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ maxHeight: 'calc(95vh - 80px)' }}>
-          <div className="p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ maxHeight: 'calc(90vh - 60px)' }}>
+          <div className="p-3 sm:p-6">
             {/* Main Content Grid */}
-            <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
+            <div className="grid lg:grid-cols-2 gap-4 lg:gap-8">
               {/* Left Side - Images */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {images.length} imagens disponíveis
+                  <span className="text-xs sm:text-sm text-muted-foreground">
+                    {images.length} imagens
                   </span>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="w-4 h-4" />
-                    <span className="hidden sm:inline">Baixar Todas</span>
+                  <Button variant="outline" size="sm" className="gap-2 h-7 sm:h-8 text-xs">
+                    <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Baixar</span>
                   </Button>
                 </div>
                 
@@ -226,21 +227,21 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
               </div>
 
               {/* Right Side - Product Info */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Product Title & SKU */}
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">{product.name}</h1>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground mb-2 leading-tight">{product.name}</h1>
+                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Tag className="w-3 h-3" />
-                      SKU: <span className="font-mono text-foreground">{product.sku}</span>
+                      <span className="font-mono text-foreground">{product.sku}</span>
                     </span>
                     {product.barcode && (
                       <>
-                        <span className="text-border">|</span>
+                        <span className="text-border hidden sm:inline">|</span>
                         <span className="flex items-center gap-1">
                           <Barcode className="w-3 h-3" />
-                          EAN: <span className="font-mono text-foreground">{product.barcode}</span>
+                          <span className="font-mono text-foreground text-xs">{product.barcode}</span>
                         </span>
                       </>
                     )}
@@ -248,12 +249,12 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                 </div>
 
                 {/* Price */}
-                <div className="flex items-baseline gap-3">
-                  <span className="text-2xl sm:text-3xl font-bold text-primary">
+                <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
+                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
                     {formatCurrency(product.price)}
                   </span>
                   {product.costPrice > 0 && (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       Custo: {formatCurrency(product.costPrice)}
                     </span>
                   )}
@@ -275,55 +276,55 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                 </div>
 
                 {/* Quick Info Cards */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-card rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Categoria</p>
-                    <p className="font-medium text-foreground text-sm flex items-center gap-1">
-                      <Layers className="w-3 h-3 text-primary" />
-                      {product.category}
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="bg-card rounded-lg border border-border p-2 sm:p-3">
+                    <p className="text-xs text-muted-foreground mb-0.5 sm:mb-1">Categoria</p>
+                    <p className="font-medium text-foreground text-xs sm:text-sm flex items-center gap-1 truncate">
+                      <Layers className="w-3 h-3 text-primary shrink-0" />
+                      <span className="truncate">{product.category}</span>
                     </p>
                   </div>
-                  <div className="bg-card rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Fornecedor</p>
-                    <p className="font-medium text-foreground text-sm flex items-center gap-1">
-                      <Building2 className="w-3 h-3 text-primary" />
-                      {product.supplier}
+                  <div className="bg-card rounded-lg border border-border p-2 sm:p-3">
+                    <p className="text-xs text-muted-foreground mb-0.5 sm:mb-1">Fornecedor</p>
+                    <p className="font-medium text-foreground text-xs sm:text-sm flex items-center gap-1 truncate">
+                      <Building2 className="w-3 h-3 text-primary shrink-0" />
+                      <span className="truncate">{product.supplier}</span>
                     </p>
                   </div>
                   {product.supplierState && (
-                    <div className="bg-card rounded-lg border border-border p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Estado de Origem</p>
-                      <p className="font-medium text-foreground text-sm flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-primary" />
+                    <div className="bg-card rounded-lg border border-border p-2 sm:p-3">
+                      <p className="text-xs text-muted-foreground mb-0.5 sm:mb-1">Estado</p>
+                      <p className="font-medium text-foreground text-xs sm:text-sm flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-primary shrink-0" />
                         {product.supplierState}
                       </p>
                     </div>
                   )}
                   {product.brand && (
-                    <div className="bg-card rounded-lg border border-border p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Marca</p>
-                      <p className="font-medium text-foreground text-sm">{product.brand}</p>
+                    <div className="bg-card rounded-lg border border-border p-2 sm:p-3">
+                      <p className="text-xs text-muted-foreground mb-0.5 sm:mb-1">Marca</p>
+                      <p className="font-medium text-foreground text-xs sm:text-sm truncate">{product.brand}</p>
                     </div>
                   )}
                 </div>
 
                 {/* Technical Specifications */}
-                <div className="bg-card rounded-xl border border-border p-4">
-                  <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+                  <h3 className="font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2 text-sm">
                     <Info className="w-4 h-4 text-primary" />
-                    Especificações Técnicas
+                    Especificações
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm">
                     {product.brand && (
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Marca</p>
-                        <p className="font-medium text-foreground">{product.brand}</p>
+                        <p className="font-medium text-foreground truncate">{product.brand}</p>
                       </div>
                     )}
                     {product.ncm && (
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">NCM</p>
-                        <p className="font-medium text-foreground font-mono">{product.ncm}</p>
+                        <p className="font-medium text-foreground font-mono text-xs">{product.ncm}</p>
                       </div>
                     )}
                     {product.weight !== undefined && (
@@ -346,20 +347,20 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                     )}
                     {product.length !== undefined && (
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Comprimento</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Comprim.</p>
                         <p className="font-medium text-foreground">{product.length}cm</p>
                       </div>
                     )}
                     {product.unitsByBox !== undefined && product.unitsByBox > 1 && (
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Unid. por Caixa</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Un./Caixa</p>
                         <p className="font-medium text-foreground">{product.unitsByBox}</p>
                       </div>
                     )}
                     {product.barcode && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Código de Barras</p>
-                        <p className="font-medium text-foreground font-mono text-xs">{product.barcode}</p>
+                      <div className="col-span-2 sm:col-span-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Cód. Barras</p>
+                        <p className="font-medium text-foreground font-mono text-xs break-all">{product.barcode}</p>
                       </div>
                     )}
                   </div>

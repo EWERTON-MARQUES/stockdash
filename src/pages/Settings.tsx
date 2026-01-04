@@ -117,26 +117,26 @@ export default function Settings() {
         description="Configure a conexão com a API externa"
       />
 
-      <div className="max-w-2xl">
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 animate-fade-in">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-              <SettingsIcon className="w-5 h-5 text-primary" />
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-4 sm:p-6 animate-fade-in">
+          <div className="flex items-start sm:items-center gap-3 mb-4 sm:mb-6">
+            <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 shrink-0">
+              <SettingsIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground">
                 Configuração da API Wedrop
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Configure a URL e Token para conectar com a API Wedrop
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Configure a URL e Token para conectar com a API
               </p>
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="baseUrl" className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="baseUrl" className="flex items-center gap-2 text-sm">
+                <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
                 URL Base da API
               </Label>
               <Input
@@ -149,7 +149,7 @@ export default function Settings() {
                   setIsSaved(false);
                   setTestResult(null);
                 }}
-                className="font-mono"
+                className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
                 Exemplo: https://api.wedrop.com.br/v3/api
@@ -157,8 +157,8 @@ export default function Settings() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="token" className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="token" className="flex items-center gap-2 text-sm">
+                <Key className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
                 Token de Acesso (Bearer)
               </Label>
               <Input
@@ -171,7 +171,7 @@ export default function Settings() {
                   setIsSaved(false);
                   setTestResult(null);
                 }}
-                className="font-mono"
+                className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
                 Token JWT de autenticação da API Wedrop
@@ -200,8 +200,8 @@ export default function Settings() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border">
-              <Button onClick={handleSave} className="gap-2" disabled={isSaving}>
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 pt-4 border-t border-border">
+              <Button onClick={handleSave} className="gap-2 w-full sm:w-auto" disabled={isSaving}>
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
@@ -213,7 +213,7 @@ export default function Settings() {
                 variant="outline" 
                 onClick={handleTest} 
                 disabled={!isSaved || isTesting}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 {isTesting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -222,7 +222,7 @@ export default function Settings() {
                 )}
                 Testar Conexão
               </Button>
-              <Button variant="outline" onClick={handleClear}>
+              <Button variant="outline" onClick={handleClear} className="w-full sm:w-auto">
                 Limpar
               </Button>
             </div>
@@ -230,20 +230,20 @@ export default function Settings() {
         </div>
 
         {/* Info Card */}
-        <div className="mt-6 bg-muted/30 rounded-xl border border-border p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-3">
+        <div className="mt-4 sm:mt-6 bg-muted/30 rounded-xl border border-border p-4 sm:p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-2 sm:mb-3">
             ℹ️ Configuração Persistente
           </h3>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
             As configurações são salvas no servidor e permanecem ativas mesmo após limpar o histórico do navegador.
           </p>
-          <h3 className="text-sm font-semibold text-foreground mb-3">
+          <h3 className="text-sm font-semibold text-foreground mb-2 sm:mb-3">
             Endpoints Utilizados
           </h3>
-          <div className="space-y-2 text-sm text-muted-foreground font-mono">
-            <p>GET /catalog/products - Lista todos os produtos</p>
-            <p>GET /catalog/products/:id - Detalhes do produto</p>
-            <p>GET /products/:id/stock-history - Histórico</p>
+          <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-muted-foreground font-mono break-all">
+            <p>GET /catalog/products</p>
+            <p>GET /catalog/products/:id</p>
+            <p>GET /products/:id/stock-history</p>
           </div>
         </div>
       </div>
