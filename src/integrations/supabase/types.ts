@@ -259,36 +259,6 @@ export type Database = {
         }
         Relationships: []
       }
-      telegram_config: {
-        Row: {
-          bot_token: string | null
-          chat_id: string | null
-          created_at: string
-          enabled: boolean
-          id: string
-          low_stock_threshold: number
-          updated_at: string
-        }
-        Insert: {
-          bot_token?: string | null
-          chat_id?: string | null
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          low_stock_threshold?: number
-          updated_at?: string
-        }
-        Update: {
-          bot_token?: string | null
-          chat_id?: string | null
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          low_stock_threshold?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
