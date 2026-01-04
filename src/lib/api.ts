@@ -1,4 +1,5 @@
 import { Product, StockMovement, DashboardStats, ApiConfig } from './types';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface PaginatedProducts {
   products: Product[];
@@ -47,27 +48,107 @@ class ApiService {
   private allProductsCache: Product[] | null = null;
   private allProductsCacheTime: number = 0;
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private configLoading: Promise<ApiConfig | null> | null = null;
 
-  setConfig(config: ApiConfig) {
+  async setConfig(config: ApiConfig): Promise<void> {
     this.config = config;
-    localStorage.setItem('apiConfig', JSON.stringify(config));
-    this.allProductsCache = null; // Clear cache on config change
+    this.allProductsCache = null;
+    
+    try {
+      // Get existing config
+      const { data: existing } = await supabase
+        .from('api_config')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      
+      if (existing) {
+        await supabase
+          .from('api_config')
+          .update({ base_url: config.baseUrl, token: config.token })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('api_config')
+          .insert({ base_url: config.baseUrl, token: config.token });
+      }
+    } catch (error) {
+      console.error('Error saving config to database:', error);
+      // Fallback to localStorage
+      localStorage.setItem('apiConfig', JSON.stringify(config));
+    }
   }
 
-  getConfig(): ApiConfig | null {
-    if (!this.config) {
+  async getConfigAsync(): Promise<ApiConfig | null> {
+    if (this.config) return this.config;
+    
+    // Prevent multiple simultaneous DB calls
+    if (this.configLoading) return this.configLoading;
+    
+    this.configLoading = this.loadConfigFromDB();
+    const result = await this.configLoading;
+    this.configLoading = null;
+    return result;
+  }
+
+  private async loadConfigFromDB(): Promise<ApiConfig | null> {
+    try {
+      const { data } = await supabase
+        .from('api_config')
+        .select('base_url, token')
+        .limit(1)
+        .maybeSingle();
+      
+      if (data) {
+        this.config = { baseUrl: data.base_url, token: data.token };
+        return this.config;
+      }
+      
+      // Fallback to localStorage
       const stored = localStorage.getItem('apiConfig');
       if (stored) {
         this.config = JSON.parse(stored);
+        // Migrate to database
+        if (this.config) {
+          await this.setConfig(this.config);
+        }
+        return this.config;
       }
+    } catch (error) {
+      console.error('Error loading config:', error);
+      const stored = localStorage.getItem('apiConfig');
+      if (stored) {
+        this.config = JSON.parse(stored);
+        return this.config;
+      }
+    }
+    
+    return null;
+  }
+
+  getConfig(): ApiConfig | null {
+    if (this.config) return this.config;
+    
+    // Synchronous fallback for backward compatibility
+    const stored = localStorage.getItem('apiConfig');
+    if (stored) {
+      this.config = JSON.parse(stored);
+      // Trigger async migration in background
+      this.getConfigAsync();
     }
     return this.config;
   }
 
-  clearConfig() {
+  async clearConfig(): Promise<void> {
     this.config = null;
-    localStorage.removeItem('apiConfig');
     this.allProductsCache = null;
+    localStorage.removeItem('apiConfig');
+    
+    try {
+      await supabase.from('api_config').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch (error) {
+      console.error('Error clearing config:', error);
+    }
   }
 
   private async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
