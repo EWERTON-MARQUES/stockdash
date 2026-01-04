@@ -15,6 +15,8 @@ import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO, isSameMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { accountPayableSchema, accountReceivableSchema, categorySchema } from '@/lib/validation/financial';
+import { z } from 'zod';
 
 interface AccountPayable {
   id: string;
@@ -141,7 +143,9 @@ export default function Financial() {
         setCustomCategories(categoriesRes.data as FinancialCategory[]);
       }
     } catch (error) {
-      console.error('Error loading financial data:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading financial data:', error);
+      }
       toast.error('Erro ao carregar dados financeiros');
     } finally {
       setLoading(false);
@@ -163,74 +167,73 @@ export default function Financial() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.description || !formData.amount || !formData.due_date) {
-      toast.error('Preencha os campos obrigatórios');
-      return;
-    }
-
-    // Validate payment method for receivables
-    if (modalType === 'receivable' && !formData.payment_method) {
-      toast.error('Forma de pagamento é obrigatória para contas a receber');
-      return;
-    }
-
     try {
-      if (editingId) {
-        if (modalType === 'payable') {
+      const amountNum = parseFloat(formData.amount);
+      
+      if (modalType === 'payable') {
+        const validated = accountPayableSchema.parse({
+          description: formData.description,
+          amount: isNaN(amountNum) ? 0 : amountNum,
+          due_date: formData.due_date,
+          supplier: formData.supplier || null,
+          payment_method: formData.payment_method || null,
+          category: formData.category || null,
+          notes: formData.notes || null,
+          document_number: formData.document_number || null,
+        });
+
+        if (editingId) {
           const { error } = await supabase.from('accounts_payable').update({
-            description: formData.description,
-            amount: parseFloat(formData.amount),
-            due_date: formData.due_date,
-            supplier: formData.supplier || null,
-            payment_method: formData.payment_method || null,
-            category: formData.category || null,
-            notes: formData.notes || null,
-            document_number: formData.document_number || null,
+            ...validated,
           }).eq('id', editingId);
 
           if (error) throw error;
           toast.success('Conta a pagar atualizada!');
         } else {
-          const { error } = await supabase.from('accounts_receivable').update({
-            description: formData.description,
-            amount: parseFloat(formData.amount),
-            due_date: formData.due_date,
-            customer: formData.customer || null,
-            payment_method: formData.payment_method,
-            category: formData.category || null,
-            notes: formData.notes || null,
-            document_number: formData.document_number || null,
-          }).eq('id', editingId);
-
-          if (error) throw error;
-          toast.success('Conta a receber atualizada!');
-        }
-      } else {
-        if (modalType === 'payable') {
           const { error } = await supabase.from('accounts_payable').insert({
-            description: formData.description,
-            amount: parseFloat(formData.amount),
-            due_date: formData.due_date,
-            supplier: formData.supplier || null,
-            payment_method: formData.payment_method || null,
-            category: formData.category || null,
-            notes: formData.notes || null,
-            document_number: formData.document_number || null,
+            description: validated.description,
+            amount: validated.amount,
+            due_date: validated.due_date,
+            supplier: validated.supplier,
+            payment_method: validated.payment_method,
+            category: validated.category,
+            notes: validated.notes,
+            document_number: validated.document_number,
             status: 'pending',
           });
 
           if (error) throw error;
           toast.success('Conta a pagar criada!');
+        }
+      } else {
+        const validated = accountReceivableSchema.parse({
+          description: formData.description,
+          amount: isNaN(amountNum) ? 0 : amountNum,
+          due_date: formData.due_date,
+          customer: formData.customer || null,
+          payment_method: formData.payment_method,
+          category: formData.category || null,
+          notes: formData.notes || null,
+          document_number: formData.document_number || null,
+        });
+
+        if (editingId) {
+          const { error } = await supabase.from('accounts_receivable').update({
+            ...validated,
+          }).eq('id', editingId);
+
+          if (error) throw error;
+          toast.success('Conta a receber atualizada!');
         } else {
           const { error } = await supabase.from('accounts_receivable').insert({
-            description: formData.description,
-            amount: parseFloat(formData.amount),
-            due_date: formData.due_date,
-            customer: formData.customer || null,
-            payment_method: formData.payment_method,
-            category: formData.category || null,
-            notes: formData.notes || null,
-            document_number: formData.document_number || null,
+            description: validated.description,
+            amount: validated.amount,
+            due_date: validated.due_date,
+            customer: validated.customer,
+            payment_method: validated.payment_method,
+            category: validated.category,
+            notes: validated.notes,
+            document_number: validated.document_number,
             status: 'pending',
           });
 
@@ -244,22 +247,29 @@ export default function Financial() {
       resetForm();
       loadData();
     } catch (error) {
-      console.error('Error saving entry:', error);
-      toast.error('Erro ao salvar registro');
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        if (import.meta.env.DEV) {
+          console.error('Error saving entry:', error);
+        }
+        toast.error('Erro ao salvar registro');
+      }
     }
   };
 
   const handleSaveCategory = async () => {
-    if (!categoryFormData.name) {
-      toast.error('Nome da categoria é obrigatório');
-      return;
-    }
-
     try {
-      const { error } = await supabase.from('financial_accounts').insert({
+      const validated = categorySchema.parse({
         name: categoryFormData.name,
         type: categoryFormData.type,
         description: categoryFormData.description || null,
+      });
+
+      const { error } = await supabase.from('financial_accounts').insert({
+        name: validated.name,
+        type: validated.type,
+        description: validated.description,
       });
 
       if (error) throw error;
@@ -268,8 +278,14 @@ export default function Financial() {
       setCategoryFormData({ name: '', type: 'expense', description: '' });
       loadData();
     } catch (error) {
-      console.error('Error saving category:', error);
-      toast.error('Erro ao salvar categoria');
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        if (import.meta.env.DEV) {
+          console.error('Error saving category:', error);
+        }
+        toast.error('Erro ao salvar categoria');
+      }
     }
   };
 
@@ -301,7 +317,9 @@ export default function Financial() {
       toast.success('Registro excluído!');
       loadData();
     } catch (error) {
-      console.error('Error deleting entry:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting entry:', error);
+      }
       toast.error('Erro ao excluir registro');
     }
   };
@@ -360,7 +378,9 @@ export default function Financial() {
 
       loadData();
     } catch (error) {
-      console.error('Error updating entry:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating entry:', error);
+      }
       toast.error('Erro ao atualizar registro');
     }
   };

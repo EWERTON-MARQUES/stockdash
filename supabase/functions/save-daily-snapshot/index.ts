@@ -14,6 +14,35 @@ serve(async (req) => {
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.log('Missing Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Initialize Supabase client with user's auth token
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.log('Invalid authentication token');
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
     const { apiUrl, apiToken } = await req.json();
     
     if (!apiUrl || !apiToken) {
@@ -23,7 +52,20 @@ serve(async (req) => {
       );
     }
 
-    console.log('Fetching products from Wedrop API...');
+    // Validate apiUrl format
+    try {
+      const url = new URL(apiUrl);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        throw new Error('Invalid protocol');
+      }
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid API URL format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Fetching products from external API...');
     
     // Fetch all products from API to calculate stats
     const allProducts: any[] = [];
@@ -44,7 +86,8 @@ serve(async (req) => {
       );
       
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        console.error('External API error:', response.status);
+        throw new Error('Failed to fetch from external API');
       }
       
       const data = await response.json();
@@ -68,15 +111,14 @@ serve(async (req) => {
     const lowStockProducts = allProducts.filter(p => (p.availableQuantity || 0) > 0 && (p.availableQuantity || 0) <= 80).length;
     const outOfStockProducts = allProducts.filter(p => (p.availableQuantity || 0) === 0).length;
     
-    // Save to database
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Use service role key for database operations (respects RLS with authenticated context)
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
     const today = new Date().toISOString().split('T')[0];
     
     // Upsert snapshot for today (update if exists, insert if not)
-    const { data: snapshot, error } = await supabase
+    const { data: snapshot, error } = await supabaseAdmin
       .from('daily_stock_snapshots')
       .upsert({
         date: today,
@@ -90,11 +132,11 @@ serve(async (req) => {
       .single();
     
     if (error) {
-      console.error('Error saving snapshot:', error);
-      throw error;
+      console.error('Database error occurred');
+      throw new Error('Failed to save snapshot');
     }
     
-    console.log('Snapshot saved:', snapshot);
+    console.log('Snapshot saved successfully');
     
     return new Response(
       JSON.stringify({ 
@@ -114,7 +156,7 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in save-daily-snapshot:', errorMessage);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An error occurred while processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
