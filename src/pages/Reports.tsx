@@ -335,7 +335,7 @@ export default function Reports() {
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="w-4 h-4 text-chart-1" />
-              <span className="text-xs text-muted-foreground">Custo Wedrop</span>
+              <span className="text-xs text-muted-foreground">Valor Estoque</span>
             </div>
             <p className="text-sm sm:text-lg font-bold text-chart-1">{formatCurrency(totalCostValue)}</p>
           </CardContent>
@@ -454,12 +454,12 @@ export default function Reports() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-success" />
-                    Top 10 por Custo Wedrop
+                    Top 10 por Valor em Estoque
                   </CardTitle>
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => exportToCSV(topByCostValue, 'top_custo_wedrop')}
+                    onClick={() => exportToCSV(topByCostValue, 'top_valor_estoque')}
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -473,7 +473,7 @@ export default function Reports() {
                       <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
                       <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                      <Bar dataKey="costValue" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} name="Custo Wedrop" />
+                      <Bar dataKey="costValue" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} name="Valor Estoque" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -541,7 +541,7 @@ export default function Reports() {
                       <TableHead>Categoria</TableHead>
                       <TableHead className="text-right">Produtos</TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead className="text-right">Custo Wedrop</TableHead>
+                      <TableHead className="text-right">Valor Estoque</TableHead>
                       <TableHead className="text-right">Estoque Baixo</TableHead>
                       <TableHead className="text-right">Sem Estoque</TableHead>
                       <TableHead className="w-[150px]">Participação</TableHead>
@@ -612,7 +612,7 @@ export default function Reports() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Custo Wedrop por Categoria</CardTitle>
+                <CardTitle className="text-base">Valor em Estoque por Categoria</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -622,7 +622,7 @@ export default function Reports() {
                       <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
                       <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                      <Bar dataKey="costValue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} name="Custo Wedrop" />
+                      <Bar dataKey="costValue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} name="Valor Estoque" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -658,7 +658,7 @@ export default function Reports() {
                       <TableHead>Fornecedor</TableHead>
                       <TableHead className="text-right">Produtos</TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead className="text-right">Custo Wedrop</TableHead>
+                      <TableHead className="text-right">Valor Estoque</TableHead>
                       <TableHead className="text-right">Estoque Baixo</TableHead>
                       <TableHead className="text-right">Sem Estoque</TableHead>
                       <TableHead>Saúde</TableHead>
@@ -727,7 +727,7 @@ export default function Reports() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Custo Wedrop por Fornecedor</CardTitle>
+                <CardTitle className="text-base">Valor em Estoque por Fornecedor</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -737,7 +737,7 @@ export default function Reports() {
                       <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
                       <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                      <Bar dataKey="costValue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} name="Custo Wedrop" />
+                      <Bar dataKey="costValue" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} name="Valor Estoque" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -809,8 +809,8 @@ export default function Reports() {
                       nome: p.name,
                       classificacao: p.classification,
                       estoque: p.stock,
-                      custoWedrop: p.costPrice,
-                      valorTotalCusto: p.totalCostValue,
+                      precoVenda: p.price,
+                      valorTotalEstoque: p.totalCostValue,
                       mediaSaida30d: p.avgSellsQuantityPast30Days || 0,
                     })),
                     'curva_abc'
@@ -830,7 +830,7 @@ export default function Reports() {
                       <TableHead>Produto</TableHead>
                       <TableHead className="text-center">Classe</TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead className="text-right">Custo Wedrop</TableHead>
+                      <TableHead className="text-right">Preço Venda</TableHead>
                       <TableHead className="text-right">Valor Total</TableHead>
                       <TableHead className="text-right">Média Saída/30d</TableHead>
                     </TableRow>
@@ -854,7 +854,7 @@ export default function Reports() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">{formatNumber(p.stock)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(p.costPrice)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(p.price)}</TableCell>
                         <TableCell className="text-right text-chart-1">{formatCurrency(p.totalCostValue)}</TableCell>
                         <TableCell className="text-right">{(p.avgSellsQuantityPast30Days ?? 0).toFixed(1)}</TableCell>
                       </TableRow>
@@ -905,7 +905,7 @@ export default function Reports() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-chart-1" />
-                    Top 10 por Custo Wedrop
+                    Top 10 por Valor em Estoque
                   </CardTitle>
                   <Button 
                     variant="ghost" 
@@ -924,7 +924,7 @@ export default function Reports() {
                       <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
                       <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                      <Bar dataKey="costValue" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} name="Custo Wedrop" />
+                      <Bar dataKey="costValue" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} name="Valor Estoque" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -947,8 +947,8 @@ export default function Reports() {
                       categoria: p.category,
                       fornecedor: p.supplier,
                       estoque: p.stock,
-                      custoWedrop: p.costPrice,
-                      valorTotalCusto: p.costPrice * p.stock,
+                      precoVenda: p.price,
+                      valorTotalEstoque: p.price * p.stock,
                       status: p.stock === 0 ? 'Sem Estoque' : p.stock <= 80 ? 'Estoque Baixo' : 'Em Estoque',
                     })),
                     'detalhamento_estoque'
@@ -969,7 +969,7 @@ export default function Reports() {
                       <TableHead>Categoria</TableHead>
                       <TableHead>Fornecedor</TableHead>
                       <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead className="text-right">Custo Wedrop</TableHead>
+                      <TableHead className="text-right">Preço Venda</TableHead>
                       <TableHead className="text-right">Valor Total</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -982,8 +982,8 @@ export default function Reports() {
                         <TableCell className="text-muted-foreground">{p.category}</TableCell>
                         <TableCell className="text-muted-foreground">{p.supplier}</TableCell>
                         <TableCell className="text-right font-medium">{formatNumber(p.stock)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(p.costPrice)}</TableCell>
-                        <TableCell className="text-right text-chart-1">{formatCurrency(p.costPrice * p.stock)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(p.price)}</TableCell>
+                        <TableCell className="text-right text-chart-1">{formatCurrency(p.price * p.stock)}</TableCell>
                         <TableCell>
                           <Badge 
                             variant="outline"
@@ -1047,7 +1047,7 @@ export default function Reports() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-chart-1" />
-                      Evolução do Custo Wedrop
+                      Evolução do Valor em Estoque
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1066,7 +1066,7 @@ export default function Reports() {
                             dataKey="total_value" 
                             stroke={CHART_COLORS[1]} 
                             fill={`${CHART_COLORS[1]}33`}
-                            name="Custo Wedrop"
+                            name="Valor Estoque"
                           />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -1170,7 +1170,7 @@ export default function Reports() {
                         nome: p.name,
                         estoque: p.stock,
                         mediaSaida7d: p.avgSellsQuantityPast7Days || 0,
-                        custoWedrop: p.costPrice,
+                        precoVenda: p.price,
                       })),
                       'produtos_atencao'
                     )}
@@ -1190,7 +1190,7 @@ export default function Reports() {
                         <TableHead className="text-right">Estoque</TableHead>
                         <TableHead className="text-right">Média Saída/7d</TableHead>
                         <TableHead className="text-right">Dias de Estoque</TableHead>
-                        <TableHead className="text-right">Custo Wedrop</TableHead>
+                        <TableHead className="text-right">Preço Venda</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1216,7 +1216,7 @@ export default function Reports() {
                                 {daysOfStock} dias
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right">{formatCurrency(p.costPrice)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(p.price)}</TableCell>
                           </TableRow>
                         );
                       })}
@@ -1238,15 +1238,15 @@ export default function Reports() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => exportToCSV(
-                    filteredProducts.filter(p => p.stock === 0).map(p => ({
-                      sku: p.sku,
-                      nome: p.name,
-                      categoria: p.category,
-                      fornecedor: p.supplier,
-                      custoWedrop: p.costPrice,
-                    })),
-                    'produtos_sem_estoque'
+                    onClick={() => exportToCSV(
+                      filteredProducts.filter(p => p.stock === 0).map(p => ({
+                        sku: p.sku,
+                        nome: p.name,
+                        categoria: p.category,
+                        fornecedor: p.supplier,
+                        precoVenda: p.price,
+                      })),
+                      'produtos_sem_estoque'
                   )}
                 >
                   <Download className="w-4 h-4 mr-2" />
@@ -1263,7 +1263,7 @@ export default function Reports() {
                       <TableHead>Produto</TableHead>
                       <TableHead>Categoria</TableHead>
                       <TableHead>Fornecedor</TableHead>
-                      <TableHead className="text-right">Custo Wedrop</TableHead>
+                      <TableHead className="text-right">Preço Venda</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1273,7 +1273,7 @@ export default function Reports() {
                         <TableCell className="max-w-[200px] truncate">{p.name}</TableCell>
                         <TableCell className="text-muted-foreground">{p.category}</TableCell>
                         <TableCell className="text-muted-foreground">{p.supplier}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(p.costPrice)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(p.price)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
