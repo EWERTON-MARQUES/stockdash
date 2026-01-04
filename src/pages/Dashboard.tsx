@@ -18,7 +18,7 @@ interface ProductWithMovement extends Product {
   movementDate?: string;
 }
 
-const CHART_COLORS = ['hsl(205, 90%, 45%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(0, 72%, 50%)', 'hsl(280, 60%, 50%)', 'hsl(180, 60%, 45%)'];
+const CHART_COLORS = ['hsl(205, 90%, 45%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(0, 72%, 50%)', 'hsl(280, 60%, 50%)', 'hsl(180, 60%, 45%)', 'hsl(320, 70%, 50%)', 'hsl(60, 80%, 45%)', 'hsl(100, 60%, 45%)', 'hsl(220, 75%, 55%)', 'hsl(350, 65%, 55%)', 'hsl(160, 65%, 45%)', 'hsl(45, 85%, 50%)', 'hsl(260, 60%, 55%)', 'hsl(190, 70%, 50%)'];
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -326,11 +326,11 @@ export default function Dashboard() {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex flex-wrap gap-2 justify-center mt-2">
-            {categoryData.slice(0, 4).map((item, index) => (
+          <div className="flex flex-wrap gap-2 justify-center mt-2 max-h-[60px] overflow-y-auto">
+            {categoryData.map((item, index) => (
               <div key={item.name} className="flex items-center gap-1 text-xs">
                 <div 
-                  className="w-2 h-2 rounded-full" 
+                  className="w-2 h-2 rounded-full flex-shrink-0" 
                   style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                 />
                 <span className="text-muted-foreground truncate max-w-[60px] sm:max-w-[80px]">{item.name}</span>
