@@ -445,11 +445,11 @@ export default function Catalog() {
         </div>
       ) : (
         <>
-          <div className="glass-card overflow-hidden animate-fade-in">
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden animate-fade-in">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border/50 bg-muted/20">
+                  <tr className="border-b border-border bg-muted/50">
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Produto</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden sm:table-cell">SKU</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden md:table-cell">Categoria</th>
@@ -459,20 +459,20 @@ export default function Catalog() {
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden sm:table-cell">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody className="divide-y divide-border">
                   {paginatedData.products.map((product) => (
                     <tr 
                       key={product.id} 
-                      className={`group cursor-pointer hover:bg-primary/5 transition-all duration-200 ${isSelling(product.id) ? 'bg-success/5' : ''}`} 
+                      className={`table-row-hover group cursor-pointer hover:bg-primary/5 transition-colors ${isSelling(product.id) ? 'bg-success/5' : ''}`} 
                       onClick={() => { setSelectedProduct(product); setModalOpen(true); }}
                     >
                       <td className="px-3 sm:px-4 py-4">
                         <div className="flex items-center gap-2 sm:gap-3">
                           {product.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover border border-border/50 shadow-sm" />
+                            <img src={product.imageUrl} alt={product.name} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover border border-border" />
                           ) : (
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
-                              <Image className="w-5 h-5 text-muted-foreground" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-muted flex items-center justify-center">
+                              <Image className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                             </div>
                           )}
                           <span className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 text-sm sm:text-base max-w-[150px] sm:max-w-[250px]">

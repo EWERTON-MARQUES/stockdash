@@ -116,30 +116,6 @@ export type Database = {
         }
         Relationships: []
       }
-      api_config: {
-        Row: {
-          base_url: string
-          created_at: string
-          id: string
-          token: string
-          updated_at: string
-        }
-        Insert: {
-          base_url: string
-          created_at?: string
-          id?: string
-          token: string
-          updated_at?: string
-        }
-        Update: {
-          base_url?: string
-          created_at?: string
-          id?: string
-          token?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       cash_flow: {
         Row: {
           amount: number

@@ -142,11 +142,11 @@ export default function ABCCurve() {
   const topAProducts = products.filter(p => p.curveClass === 'A').slice(0, 10);
 
   const ProductTable = ({ products }: { products: ABCProduct[] }) => (
-    <div className="glass-card overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border/50 bg-muted/20">
+            <tr className="border-b border-border bg-muted/30">
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Produto</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">SKU</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Estoque</th>
@@ -156,14 +156,14 @@ export default function ABCCurve() {
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Curva</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/50">
+          <tbody className="divide-y divide-border">
             {products.map((product, idx) => (
-              <tr key={product.id} className="hover:bg-primary/5 transition-colors">
+              <tr key={product.id} className="hover:bg-muted/20 transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-mono text-muted-foreground w-6">{idx + 1}</span>
                     {product.imageUrl && (
-                      <img src={product.imageUrl} alt={product.name} className="w-10 h-10 rounded-xl object-cover border border-border/50" />
+                      <img src={product.imageUrl} alt={product.name} className="w-8 h-8 rounded object-cover" />
                     )}
                     <span className="font-medium text-foreground line-clamp-1 max-w-[200px]">{product.name}</span>
                   </div>
@@ -204,7 +204,7 @@ export default function ABCCurve() {
       </PageHeader>
 
       {/* Info Banner */}
-      <div className="mb-6 p-4 glass-card border-primary/20">
+      <div className="mb-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
         <div className="flex items-start gap-3">
           <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <div>
@@ -220,7 +220,7 @@ export default function ABCCurve() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 mb-6 sm:grid-cols-3">
-        <div className="glass-card p-5 border-success/20">
+        <div className="bg-card rounded-xl p-5 border border-success/20 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-5 h-5 text-success" />
             <span className="font-semibold text-success">Curva A</span>
@@ -229,7 +229,7 @@ export default function ABCCurve() {
           <p className="text-xs text-muted-foreground">produtos ({stats.percentA}% do total)</p>
           <p className="text-sm font-medium text-success mt-2">{formatCurrency(stats.valueA)}</p>
         </div>
-        <div className="glass-card p-5 border-warning/20">
+        <div className="bg-card rounded-xl p-5 border border-warning/20 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Minus className="w-5 h-5 text-warning" />
             <span className="font-semibold text-warning">Curva B</span>
@@ -238,7 +238,7 @@ export default function ABCCurve() {
           <p className="text-xs text-muted-foreground">produtos ({stats.percentB}% do total)</p>
           <p className="text-sm font-medium text-warning mt-2">{formatCurrency(stats.valueB)}</p>
         </div>
-        <div className="glass-card p-5">
+        <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <TrendingDown className="w-5 h-5 text-muted-foreground" />
             <span className="font-semibold text-muted-foreground">Curva C</span>
@@ -252,9 +252,9 @@ export default function ABCCurve() {
       {/* Charts Row */}
       <div className="grid gap-6 mb-6 lg:grid-cols-2">
         {/* Distribution Pie Chart */}
-        <div className="glass-card p-5">
+        <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
           <h3 className="font-semibold text-foreground mb-4">Distribuição de Produtos</h3>
-          <div className="h-[220px]">
+          <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -266,8 +266,6 @@ export default function ABCCurve() {
                   innerRadius={50}
                   outerRadius={80}
                   paddingAngle={3}
-                  strokeWidth={2}
-                  stroke="hsl(var(--background))"
                   label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                   labelLine={false}
                 >
@@ -279,8 +277,7 @@ export default function ABCCurve() {
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
+                    borderRadius: '8px',
                   }}
                   formatter={(value: number) => [`${value} produtos`, '']}
                 />
@@ -290,31 +287,30 @@ export default function ABCCurve() {
         </div>
 
         {/* Top A Products Bar Chart */}
-        <div className="glass-card p-5">
+        <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
           <h3 className="font-semibold text-foreground mb-4">Top 10 - Curva A (Maiores Vendas)</h3>
-          <div className="h-[220px]">
+          <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topAProducts} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis 
                   dataKey="name" 
                   type="category" 
                   width={120} 
-                  tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
-                  stroke="hsl(var(--border))"
+                  tick={{ fontSize: 9 }}
+                  stroke="hsl(var(--muted-foreground))"
                   tickFormatter={(v) => v.length > 20 ? v.substring(0, 20) + '...' : v}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
+                    borderRadius: '8px',
                   }}
                   formatter={(value: number) => [`Score: ${value.toFixed(0)}`, 'Vendas']}
                 />
-                <Bar dataKey="salesScore" fill={COLORS.A} radius={[0, 6, 6, 0]} />
+                <Bar dataKey="salesScore" fill={COLORS.A} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
