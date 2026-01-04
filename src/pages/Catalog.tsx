@@ -48,6 +48,7 @@ export default function Catalog() {
   const [marketplaceData, setMarketplaceData] = useState<MarketplaceData>({});
   const [limit, setLimit] = useState(50);
   const [abcClasses, setAbcClasses] = useState<Map<string, 'A' | 'B' | 'C'>>(new Map());
+  const [abcFilter, setAbcFilter] = useState<'all' | 'A' | 'B' | 'C'>('all');
 
   // Load marketplace data
   const loadMarketplaceData = async () => {
@@ -136,6 +137,11 @@ export default function Catalog() {
           });
         }
 
+        // ABC Filter
+        if (abcFilter !== 'all') {
+          list = list.filter(p => abcClasses.get(p.id) === abcFilter);
+        }
+
         // Sort
         if (sort) {
           list = [...list].sort((a, b) => (sort === 'desc' ? b.stock - a.stock : a.stock - b.stock));
@@ -183,7 +189,7 @@ export default function Catalog() {
     } finally {
       setLoading(false);
     }
-  }, [marketplaceData]);
+  }, [marketplaceData, abcFilter, abcClasses]);
 
   // Reset to page 1 when limit changes
   useEffect(() => {
@@ -192,7 +198,7 @@ export default function Catalog() {
 
   useEffect(() => {
     loadProducts(currentPage, searchQuery, filters, limit, sortByStock);
-  }, [currentPage, filters, sortByStock, loadProducts, searchQuery, limit]);
+  }, [currentPage, filters, sortByStock, loadProducts, searchQuery, limit, abcFilter]);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -205,6 +211,7 @@ export default function Catalog() {
   const clearFilters = () => { 
     setFilters({}); 
     setSortByStock(null);
+    setAbcFilter('all');
     setCurrentPage(1); 
   };
 
@@ -213,7 +220,7 @@ export default function Catalog() {
     setCurrentPage(1);
   };
 
-  const activeFiltersCount = Object.entries(filters).filter(([_, v]) => v && v !== 'all').length + (sortByStock ? 1 : 0);
+  const activeFiltersCount = Object.entries(filters).filter(([_, v]) => v && v !== 'all').length + (sortByStock ? 1 : 0) + (abcFilter !== 'all' ? 1 : 0);
 
   const getMarketplaceBadges = (productId: string) => {
     const mp = marketplaceData[productId];
@@ -373,6 +380,18 @@ export default function Catalog() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Curva ABC</label>
+                    <Select value={abcFilter} onValueChange={(value: 'all' | 'A' | 'B' | 'C') => { setAbcFilter(value); setCurrentPage(1); }}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="A">Curva A</SelectItem>
+                        <SelectItem value="B">Curva B</SelectItem>
+                        <SelectItem value="C">Curva C</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <Button className="w-full" onClick={() => setFiltersOpen(false)}>Aplicar Filtros</Button>
               </div>
@@ -420,6 +439,14 @@ export default function Catalog() {
               <Badge variant="secondary" className="gap-1">
                 Marketplace: {filters.marketplace === 'amazon' ? 'Amazon' : filters.marketplace === 'mercado_livre' ? 'Mercado Livre' : filters.marketplace === 'both' ? 'Ambos' : 'Nenhum'}
                 <button onClick={() => updateFilter('marketplace', 'all')} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            {abcFilter !== 'all' && (
+              <Badge variant="secondary" className="gap-1">
+                Curva: {abcFilter}
+                <button onClick={() => { setAbcFilter('all'); setCurrentPage(1); }} className="ml-1 hover:text-foreground">
                   <X className="w-3 h-3" />
                 </button>
               </Badge>

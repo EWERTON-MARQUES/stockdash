@@ -108,8 +108,17 @@ export default function Reports() {
   };
 
   const formatShortDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // Parse date as local to avoid timezone offset issues
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  };
+
+  const formatFullDate = (dateStr: string) => {
+    // Parse date as local to avoid timezone offset issues
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('pt-BR');
   };
 
   // Calculate metrics - ESTOQUE ONLY (usando costPrice = Custo Wedrop)
@@ -1084,7 +1093,7 @@ export default function Reports() {
                           <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fontSize: 10 }} />
                           <YAxis tick={{ fontSize: 10 }} />
                           <Tooltip 
-                            labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                            labelFormatter={(label) => formatFullDate(label)}
                             formatter={(v: number) => formatNumber(v)}
                           />
                           <Area 
@@ -1115,7 +1124,7 @@ export default function Reports() {
                           <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fontSize: 10 }} />
                           <YAxis tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
                           <Tooltip 
-                            labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                            labelFormatter={(label) => formatFullDate(label)}
                             formatter={(v: number) => formatCurrency(v)}
                           />
                           <Area 
@@ -1147,7 +1156,7 @@ export default function Reports() {
                         <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fontSize: 10 }} />
                         <YAxis tick={{ fontSize: 10 }} />
                         <Tooltip 
-                          labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                          labelFormatter={(label) => formatFullDate(label)}
                         />
                         <Line 
                           type="monotone" 
