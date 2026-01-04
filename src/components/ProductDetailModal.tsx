@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { 
   Package, Scale, Barcode, DollarSign, Box, 
   TrendingUp, TrendingDown, ArrowUpDown, History, Store, Download, 
@@ -123,7 +123,7 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col p-0">
         <DialogHeader className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Button variant="ghost" size="sm" className="gap-1 h-7 px-2" onClick={() => onOpenChange(false)}>
@@ -134,7 +134,7 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
           <DialogTitle className="sr-only">{product.name}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ maxHeight: 'calc(95vh - 80px)' }}>
           <div className="p-4 sm:p-6">
             {/* Main Content Grid */}
             <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
@@ -557,7 +557,7 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
               )}
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
