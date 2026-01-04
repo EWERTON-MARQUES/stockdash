@@ -2,12 +2,34 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const getAllowedOrigins = () => {
+  return [
+    'https://vwixoidkzaqvuigmeogp.lovableproject.com',
+    'https://lovable.dev'
+  ];
+};
+
+const getCorsHeaders = (origin: string | null) => {
+  const allowedOrigins = getAllowedOrigins();
+  // Allow any lovable domain or preview domain
+  const isAllowed = origin && (
+    allowedOrigins.some(o => origin.includes(o.replace('https://', ''))) || 
+    origin.includes('lovable') ||
+    origin.includes('lovableproject.com')
+  );
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : allowedOrigins[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+  };
 };
 
 serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -17,7 +39,6 @@ serve(async (req) => {
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.log('Missing Authorization header');
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -34,14 +55,11 @@ serve(async (req) => {
     // Verify user authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.log('Invalid authentication token');
       return new Response(
         JSON.stringify({ error: 'Invalid authentication token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('Authenticated user:', user.id);
 
     const { apiUrl, apiToken } = await req.json();
     
@@ -65,8 +83,6 @@ serve(async (req) => {
       );
     }
 
-    console.log('Fetching products from external API...');
-    
     // Fetch all products from API to calculate stats
     const allProducts: any[] = [];
     let page = 1;
@@ -86,7 +102,6 @@ serve(async (req) => {
       );
       
       if (!response.ok) {
-        console.error('External API error:', response.status);
         throw new Error('Failed to fetch from external API');
       }
       
@@ -102,8 +117,6 @@ serve(async (req) => {
       }
     }
     
-    console.log(`Fetched ${allProducts.length} products`);
-    
     // Calculate stats
     const totalProducts = allProducts.length;
     const totalStock = allProducts.reduce((acc, p) => acc + (p.availableQuantity || 0), 0);
@@ -111,13 +124,13 @@ serve(async (req) => {
     const lowStockProducts = allProducts.filter(p => (p.availableQuantity || 0) > 0 && (p.availableQuantity || 0) <= 80).length;
     const outOfStockProducts = allProducts.filter(p => (p.availableQuantity || 0) === 0).length;
     
-    // Use service role key for database operations (respects RLS with authenticated context)
+    // Use service role key for database operations
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
     const today = new Date().toISOString().split('T')[0];
     
-    // Upsert snapshot for today (update if exists, insert if not)
+    // Upsert snapshot for today
     const { data: snapshot, error } = await supabaseAdmin
       .from('daily_stock_snapshots')
       .upsert({
@@ -132,11 +145,8 @@ serve(async (req) => {
       .single();
     
     if (error) {
-      console.error('Database error occurred');
       throw new Error('Failed to save snapshot');
     }
-    
-    console.log('Snapshot saved successfully');
     
     return new Response(
       JSON.stringify({ 
@@ -153,8 +163,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in save-daily-snapshot:', errorMessage);
+    const origin = req.headers.get('Origin');
+    const corsHeaders = getCorsHeaders(origin);
     return new Response(
       JSON.stringify({ error: 'An error occurred while processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
