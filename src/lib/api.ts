@@ -46,9 +46,32 @@ class ApiService {
   private suppliersCache: Supplier[] = [];
   private allProductsCache: Product[] | null = null;
   private allProductsCacheTime: number = 0;
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private readonly CACHE_DURATION = 3 * 60 * 1000; // 3 minutes for faster refresh
   private configLoaded: boolean = false;
-  private configLoadPromise: Promise<void> | null = null;
+  private configLoadPromise: Promise<ApiConfig | null> | null = null;
+  private initPromise: Promise<void> | null = null;
+
+  constructor() {
+    // Auto-initialize config on service creation
+    this.initPromise = this.initializeConfig();
+  }
+
+  // Initialize config immediately
+  private async initializeConfig(): Promise<void> {
+    await this.loadConfigFromDatabase();
+  }
+
+  // Wait for initialization to complete
+  async waitForInit(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+    }
+  }
+
+  // Check if ready (config loaded)
+  isReady(): boolean {
+    return this.configLoaded && !!this.config?.baseUrl && !!this.config?.token;
+  }
 
   // Set config in memory only (for immediate use)
   setConfigInMemory(config: ApiConfig) {
@@ -106,8 +129,13 @@ class ApiService {
 
   // Load config from Supabase database
   async loadConfigFromDatabase(): Promise<ApiConfig | null> {
+    // Return existing promise if loading
     if (this.configLoadPromise) {
-      await this.configLoadPromise;
+      return this.configLoadPromise;
+    }
+
+    // Return cached config if already loaded
+    if (this.configLoaded && this.config) {
       return this.config;
     }
 
@@ -133,17 +161,19 @@ class ApiService {
         }
         
         this.configLoaded = true;
+        return this.config;
       } catch (error) {
         if (import.meta.env.DEV) {
           console.error('Error loading config from database:', error);
         }
         this.configLoaded = true;
+        return null;
+      } finally {
+        this.configLoadPromise = null;
       }
     })();
 
-    await this.configLoadPromise;
-    this.configLoadPromise = null;
-    return this.config;
+    return this.configLoadPromise;
   }
 
   // Get config (loads from database if needed)
