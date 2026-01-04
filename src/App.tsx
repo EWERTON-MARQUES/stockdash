@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ApiConfigProvider } from "./contexts/ApiConfigContext";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Catalog from "./pages/Catalog";
@@ -23,19 +24,21 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/catalogo" element={<ProtectedRoute><Catalog /></ProtectedRoute>} />
-          <Route path="/catalogo/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
-          <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-          <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-          <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/curva-abc" element={<ProtectedRoute><ABCCurve /></ProtectedRoute>} />
-          <Route path="/financeiro" element={<ProtectedRoute><Financial /></ProtectedRoute>} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <ApiConfigProvider>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/catalogo" element={<ProtectedRoute><Catalog /></ProtectedRoute>} />
+            <Route path="/catalogo/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
+            <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+            <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/curva-abc" element={<ProtectedRoute><ABCCurve /></ProtectedRoute>} />
+            <Route path="/financeiro" element={<ProtectedRoute><Financial /></ProtectedRoute>} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ApiConfigProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
