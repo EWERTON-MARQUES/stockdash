@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Package, Scale, Barcode, DollarSign, Box, 
   TrendingUp, TrendingDown, ArrowUpDown, History, Store, Download, 
-  ChevronLeft, ChevronRight, Play, Building2, MapPin, Tag, Layers, FileText, Info
+  ChevronLeft, ChevronRight, Play, Building2, MapPin, Tag, Layers, FileText, Info, Image
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,6 +34,7 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [amazon, setAmazon] = useState(false);
   const [mercadoLivre, setMercadoLivre] = useState(false);
+  const [imageEdited, setImageEdited] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [abcClass, setAbcClass] = useState<'A' | 'B' | 'C'>('C');
 
@@ -51,33 +52,37 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
         setAbcClass(abc);
       }).finally(() => setLoadingMovements(false));
       
-      // Load marketplace data
+      // Load marketplace and image edited data
       supabase.from('product_marketplaces').select('*').eq('product_id', product.id).maybeSingle()
         .then(({ data }) => {
           setAmazon(data?.amazon || false);
           setMercadoLivre(data?.mercado_livre || false);
+          setImageEdited(data?.image_edited || false);
         });
     }
   }, [product, open]);
 
-  const handleMarketplaceChange = async (field: 'amazon' | 'mercado_livre', value: boolean) => {
+  const handleMarketplaceChange = async (field: 'amazon' | 'mercado_livre' | 'image_edited', value: boolean) => {
     if (!product) return;
     const newAmazon = field === 'amazon' ? value : amazon;
     const newML = field === 'mercado_livre' ? value : mercadoLivre;
+    const newImageEdited = field === 'image_edited' ? value : imageEdited;
     
     setAmazon(newAmazon);
     setMercadoLivre(newML);
+    setImageEdited(newImageEdited);
 
     const { error } = await supabase.from('product_marketplaces').upsert({
       product_id: product.id,
       amazon: newAmazon,
       mercado_livre: newML,
+      image_edited: newImageEdited,
     }, { onConflict: 'product_id' });
 
     if (error) {
-      toast.error('Erro ao salvar marketplace');
+      toast.error('Erro ao salvar dados');
     } else {
-      toast.success('Marketplace atualizado!');
+      toast.success('Dados atualizados!');
       onMarketplaceUpdate?.();
     }
   };
@@ -411,28 +416,47 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                   </div>
                 </div>
 
-                {/* Marketplace Selection */}
-                <div className="bg-muted/30 rounded-xl border border-border p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Store className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">Onde está vendendo?</span>
+                {/* Marketplace & Image Status */}
+                <div className="bg-muted/30 rounded-xl border border-border p-4 space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Store className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Onde está vendendo?</span>
+                    </div>
+                    <div className="flex flex-wrap gap-4 sm:gap-6">
+                      <div className="flex items-center gap-2">
+                        <Checkbox 
+                          id="amazon" 
+                          checked={amazon} 
+                          onCheckedChange={(v) => handleMarketplaceChange('amazon', !!v)} 
+                        />
+                        <Label htmlFor="amazon" className="text-sm cursor-pointer">Amazon</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox 
+                          id="ml" 
+                          checked={mercadoLivre} 
+                          onCheckedChange={(v) => handleMarketplaceChange('mercado_livre', !!v)} 
+                        />
+                        <Label htmlFor="ml" className="text-sm cursor-pointer">Mercado Livre</Label>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-6">
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        id="amazon" 
-                        checked={amazon} 
-                        onCheckedChange={(v) => handleMarketplaceChange('amazon', !!v)} 
-                      />
-                      <Label htmlFor="amazon" className="text-sm cursor-pointer">Amazon</Label>
+                  
+                  <div className="pt-3 border-t border-border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Image className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Imagem Editada?</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Checkbox 
-                        id="ml" 
-                        checked={mercadoLivre} 
-                        onCheckedChange={(v) => handleMarketplaceChange('mercado_livre', !!v)} 
+                        id="imageEdited" 
+                        checked={imageEdited} 
+                        onCheckedChange={(v) => handleMarketplaceChange('image_edited', !!v)} 
                       />
-                      <Label htmlFor="ml" className="text-sm cursor-pointer">Mercado Livre</Label>
+                      <Label htmlFor="imageEdited" className="text-sm cursor-pointer">
+                        {imageEdited ? 'SIM - Imagem já foi editada' : 'NÃO - Imagem não editada'}
+                      </Label>
                     </div>
                   </div>
                 </div>
