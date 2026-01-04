@@ -134,8 +134,10 @@ export default function Reports() {
   };
 
   // Calculate metrics - ESTOQUE ONLY (usando costPrice = Custo Wedrop)
-  // Always use filteredProducts for accurate totals under any filter combination
-  const totalProducts = filteredProducts.length;
+  // Use API total when no filters, otherwise use filtered count
+  const totalProducts = (categoryFilter === 'all' && supplierFilter === 'all' && stockFilter === 'all') 
+    ? totalProductsFromApi 
+    : filteredProducts.length;
   const totalStock = filteredProducts.reduce((acc, p) => acc + p.stock, 0);
   const totalCostValue = filteredProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
   const lowStockCount = filteredProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
@@ -143,47 +145,47 @@ export default function Reports() {
   const avgStock = totalProducts > 0 ? totalStock / totalProducts : 0;
   const inStockCount = filteredProducts.filter(p => p.stock > 80).length;
 
-  // Category analysis - respect current filters (category/supplier/stock)
-  const categoryAnalysis = categories
-    .map(cat => {
-      const catProducts = filteredProducts.filter(p => p.categoryId === cat.id);
-      const stock = catProducts.reduce((acc, p) => acc + p.stock, 0);
-      const costValue = catProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
-      const lowStock = catProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
-      const outOfStock = catProducts.filter(p => p.stock === 0).length;
-      return {
-        id: cat.id,
-        name: cat.name,
-        products: catProducts.length,
-        stock,
-        costValue,
-        lowStock,
-        outOfStock,
-      };
-    })
-    .filter(c => c.products > 0)
-    .sort((a, b) => b.costValue - a.costValue);
+  // Category analysis - use ALL products for totals, not just filtered
+  const categoryAnalysis = categories.map(cat => {
+    // For category analysis, filter from ALL products when supplier/stock filters are applied
+    // This ensures we get accurate category totals
+    const baseProducts = (supplierFilter === 'all' && stockFilter === 'all') 
+      ? products 
+      : products;
+    
+    const catProducts = baseProducts.filter(p => p.categoryId === cat.id);
+    const stock = catProducts.reduce((acc, p) => acc + p.stock, 0);
+    const costValue = catProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
+    const lowStock = catProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
+    const outOfStock = catProducts.filter(p => p.stock === 0).length;
+    return {
+      id: cat.id,
+      name: cat.name,
+      products: catProducts.length,
+      stock,
+      costValue,
+      lowStock,
+      outOfStock,
+    };
+  }).filter(c => c.products > 0).sort((a, b) => b.costValue - a.costValue);
 
-  // Supplier analysis - respect current filters
-  const supplierAnalysis = suppliers
-    .map(sup => {
-      const supProducts = filteredProducts.filter(p => p.supplierId === sup.id);
-      const stock = supProducts.reduce((acc, p) => acc + p.stock, 0);
-      const costValue = supProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
-      const lowStock = supProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
-      const outOfStock = supProducts.filter(p => p.stock === 0).length;
-      return {
-        id: sup.id,
-        name: sup.name,
-        products: supProducts.length,
-        stock,
-        costValue,
-        lowStock,
-        outOfStock,
-      };
-    })
-    .filter(s => s.products > 0)
-    .sort((a, b) => b.costValue - a.costValue);
+  // Supplier analysis - use ALL products for accurate totals
+  const supplierAnalysis = suppliers.map(sup => {
+    const supProducts = products.filter(p => p.supplierId === sup.id);
+    const stock = supProducts.reduce((acc, p) => acc + p.stock, 0);
+    const costValue = supProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
+    const lowStock = supProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
+    const outOfStock = supProducts.filter(p => p.stock === 0).length;
+    return {
+      id: sup.id,
+      name: sup.name,
+      products: supProducts.length,
+      stock,
+      costValue,
+      lowStock,
+      outOfStock,
+    };
+  }).filter(s => s.products > 0).sort((a, b) => b.costValue - a.costValue);
 
   // ABC Analysis
   const abcProducts = [...filteredProducts]
