@@ -13,18 +13,28 @@ export default function Settings() {
   const [token, setToken] = useState('');
   const [isSaved, setIsSaved] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
-    const config = apiService.getConfig();
-    if (config) {
-      setBaseUrl(config.baseUrl);
-      setToken(config.token);
-      setIsSaved(true);
+    async function loadConfig() {
+      setIsLoading(true);
+      try {
+        const config = await apiService.getConfigAsync();
+        if (config) {
+          setBaseUrl(config.baseUrl);
+          setToken(config.token);
+          setIsSaved(true);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
+    loadConfig();
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!baseUrl.trim()) {
       toast.error('Informe a URL da API');
       return;
@@ -34,10 +44,23 @@ export default function Settings() {
       return;
     }
 
-    apiService.setConfig({ baseUrl: baseUrl.trim(), token: token.trim() });
-    setIsSaved(true);
-    setTestResult(null);
-    toast.success('Configurações salvas com sucesso!');
+    setIsSaving(true);
+    try {
+      const success = await apiService.saveConfigToDatabase({ 
+        baseUrl: baseUrl.trim(), 
+        token: token.trim() 
+      });
+      
+      if (success) {
+        setIsSaved(true);
+        setTestResult(null);
+        toast.success('Configurações salvas permanentemente!');
+      } else {
+        toast.error('Erro ao salvar configurações');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleTest = async () => {
@@ -65,14 +88,27 @@ export default function Settings() {
     }
   };
 
-  const handleClear = () => {
-    apiService.clearConfig();
+  const handleClear = async () => {
+    await apiService.clearConfig();
     setBaseUrl('');
     setToken('');
     setIsSaved(false);
     setTestResult(null);
     toast.info('Configurações removidas');
   };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">Carregando configurações...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -145,7 +181,7 @@ export default function Settings() {
             {isSaved && !testResult && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 text-success">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Configurações salvas</span>
+                <span className="text-sm font-medium">Configurações salvas permanentemente no servidor</span>
               </div>
             )}
 
@@ -165,9 +201,13 @@ export default function Settings() {
             )}
 
             <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border">
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="w-4 h-4" />
-                Salvar
+              <Button onClick={handleSave} className="gap-2" disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {isSaving ? 'Salvando...' : 'Salvar'}
               </Button>
               <Button 
                 variant="outline" 
@@ -192,12 +232,18 @@ export default function Settings() {
         {/* Info Card */}
         <div className="mt-6 bg-muted/30 rounded-xl border border-border p-6">
           <h3 className="text-sm font-semibold text-foreground mb-3">
+            ℹ️ Configuração Persistente
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            As configurações são salvas no servidor e permanecem ativas mesmo após limpar o histórico do navegador.
+          </p>
+          <h3 className="text-sm font-semibold text-foreground mb-3">
             Endpoints Utilizados
           </h3>
           <div className="space-y-2 text-sm text-muted-foreground font-mono">
             <p>GET /catalog/products - Lista todos os produtos</p>
             <p>GET /catalog/products/:id - Detalhes do produto</p>
-            <p>GET /catalog/products/:id/movements - Histórico</p>
+            <p>GET /products/:id/stock-history - Histórico</p>
           </div>
         </div>
       </div>

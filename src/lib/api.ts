@@ -47,27 +47,149 @@ class ApiService {
   private allProductsCache: Product[] | null = null;
   private allProductsCacheTime: number = 0;
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private configLoaded: boolean = false;
+  private configLoadPromise: Promise<void> | null = null;
 
-  setConfig(config: ApiConfig) {
+  // Set config in memory only (for immediate use)
+  setConfigInMemory(config: ApiConfig) {
     this.config = config;
-    localStorage.setItem('apiConfig', JSON.stringify(config));
-    this.allProductsCache = null; // Clear cache on config change
+    this.allProductsCache = null;
+    this.filtersFullyLoaded = false;
   }
 
-  getConfig(): ApiConfig | null {
-    if (!this.config) {
-      const stored = localStorage.getItem('apiConfig');
-      if (stored) {
-        this.config = JSON.parse(stored);
+  // Save config to Supabase database
+  async saveConfigToDatabase(config: ApiConfig): Promise<boolean> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Check if config exists
+      const { data: existing } = await supabase
+        .from('api_config')
+        .select('id')
+        .limit(1)
+        .single();
+
+      if (existing) {
+        // Update existing config
+        const { error } = await supabase
+          .from('api_config')
+          .update({
+            base_url: config.baseUrl,
+            token: config.token,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert new config
+        const { error } = await supabase
+          .from('api_config')
+          .insert({
+            base_url: config.baseUrl,
+            token: config.token
+          });
+        
+        if (error) throw error;
       }
+
+      this.setConfigInMemory(config);
+      this.configLoaded = true;
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error saving config to database:', error);
+      }
+      return false;
+    }
+  }
+
+  // Load config from Supabase database
+  async loadConfigFromDatabase(): Promise<ApiConfig | null> {
+    if (this.configLoadPromise) {
+      await this.configLoadPromise;
+      return this.config;
+    }
+
+    this.configLoadPromise = (async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        const { data, error } = await supabase
+          .from('api_config')
+          .select('base_url, token')
+          .limit(1)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        if (data) {
+          this.config = {
+            baseUrl: data.base_url,
+            token: data.token
+          };
+        }
+        
+        this.configLoaded = true;
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error loading config from database:', error);
+        }
+        this.configLoaded = true;
+      }
+    })();
+
+    await this.configLoadPromise;
+    this.configLoadPromise = null;
+    return this.config;
+  }
+
+  // Get config (loads from database if needed)
+  async getConfigAsync(): Promise<ApiConfig | null> {
+    if (!this.configLoaded) {
+      await this.loadConfigFromDatabase();
     }
     return this.config;
   }
 
-  clearConfig() {
-    this.config = null;
-    localStorage.removeItem('apiConfig');
-    this.allProductsCache = null;
+  // Sync getter for backwards compatibility (returns cached config)
+  getConfig(): ApiConfig | null {
+    return this.config;
+  }
+
+  // Check if config is loaded
+  isConfigLoaded(): boolean {
+    return this.configLoaded;
+  }
+
+  // Clear config from database
+  async clearConfig(): Promise<void> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      await supabase
+        .from('api_config')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      
+      this.config = null;
+      this.allProductsCache = null;
+      this.configLoaded = true;
+      this.filtersFullyLoaded = false;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error clearing config:', error);
+      }
+    }
+  }
+
+  // Legacy method for compatibility
+  setConfig(config: ApiConfig) {
+    this.setConfigInMemory(config);
+    // Also save to database in background
+    this.saveConfigToDatabase(config);
   }
 
   private async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
