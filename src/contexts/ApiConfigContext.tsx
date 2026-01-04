@@ -35,6 +35,13 @@ export function ApiConfigProvider({ children }: ApiConfigProviderProps) {
       await apiService.waitForInit();
       const loadedConfig = await apiService.getConfigAsync();
       setConfig(loadedConfig);
+      
+      // Preload data in background for faster experience
+      if (loadedConfig?.baseUrl && loadedConfig?.token) {
+        apiService.preloadData().catch(() => {
+          // Silently ignore preload errors
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -46,6 +53,10 @@ export function ApiConfigProvider({ children }: ApiConfigProviderProps) {
       apiService.getConfigAsync().then(c => {
         setConfig(c);
         setIsLoading(false);
+        // Preload data in background
+        if (c?.baseUrl && c?.token) {
+          apiService.preloadData().catch(() => {});
+        }
       });
     } else {
       loadConfig();

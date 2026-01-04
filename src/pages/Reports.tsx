@@ -312,7 +312,7 @@ export default function Reports() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-3 sm:gap-4 mb-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-3 sm:gap-4 mb-6 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
         <Card>
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -338,6 +338,15 @@ export default function Reports() {
               <span className="text-xs text-muted-foreground">Valor Estoque</span>
             </div>
             <p className="text-sm sm:text-lg font-bold text-chart-1">{formatCurrency(totalCostValue)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Layers className="w-4 h-4 text-chart-2" />
+              <span className="text-xs text-muted-foreground">Categorias</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-chart-2">{formatNumber(categories.length)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -481,21 +490,69 @@ export default function Reports() {
             </Card>
           </div>
 
-          {/* Category Stock Distribution */}
+          {/* All Categories Table */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Layers className="w-4 h-4 text-primary" />
-                  Estoque por Categoria
+                  Todas as Categorias ({categories.length})
                 </CardTitle>
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => exportToCSV(categoryAnalysis, 'estoque_por_categoria')}
+                  onClick={() => exportToCSV(categoryAnalysis, 'todas_categorias')}
                 >
                   <Download className="w-4 h-4" />
                 </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead className="text-right">Produtos</TableHead>
+                      <TableHead className="text-right">Estoque</TableHead>
+                      <TableHead className="text-right">Valor Estoque</TableHead>
+                      <TableHead className="text-right">Estoque Baixo</TableHead>
+                      <TableHead className="text-right">Sem Estoque</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categoryAnalysis.map((cat, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{cat.name}</TableCell>
+                        <TableCell className="text-right">{formatNumber(cat.products)}</TableCell>
+                        <TableCell className="text-right text-success">{formatNumber(cat.stock)}</TableCell>
+                        <TableCell className="text-right text-chart-1">{formatCurrency(cat.costValue)}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="outline" className="bg-warning/10 text-warning">
+                            {cat.lowStock}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="outline" className="bg-destructive/10 text-destructive">
+                            {cat.outOfStock}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Category Stock Distribution Chart */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  Top 10 Categorias por Estoque
+                </CardTitle>
               </div>
             </CardHeader>
             <CardContent>

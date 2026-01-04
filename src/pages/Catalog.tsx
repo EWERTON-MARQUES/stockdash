@@ -47,6 +47,7 @@ export default function Catalog() {
   const [sortByStock, setSortByStock] = useState<'asc' | 'desc' | null>(null);
   const [marketplaceData, setMarketplaceData] = useState<MarketplaceData>({});
   const [limit, setLimit] = useState(50);
+  const [abcClasses, setAbcClasses] = useState<Map<string, 'A' | 'B' | 'C'>>(new Map());
 
   // Load marketplace data
   const loadMarketplaceData = async () => {
@@ -70,6 +71,10 @@ export default function Catalog() {
       ]);
       setCategories(cats);
       setSuppliers(sups);
+      
+      // Pre-calculate ABC classes
+      const abcMap = await apiService.calculateABCCurve();
+      setAbcClasses(abcMap);
     }
     loadFilters();
     loadMarketplaceData();
@@ -218,6 +223,20 @@ export default function Catalog() {
         {mp.amazon && <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs">AMZ</Badge>}
         {mp.mercado_livre && <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 text-xs">ML</Badge>}
       </div>
+    );
+  };
+
+  const getABCBadge = (productId: string) => {
+    const curveClass = abcClasses.get(productId) || 'C';
+    const styles = {
+      A: 'bg-success/10 text-success border-success/20',
+      B: 'bg-warning/10 text-warning border-warning/20',
+      C: 'bg-muted text-muted-foreground border-border',
+    };
+    return (
+      <Badge variant="outline" className={`${styles[curveClass]} text-xs font-bold`}>
+        {curveClass}
+      </Badge>
     );
   };
 
@@ -453,6 +472,7 @@ export default function Catalog() {
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Produto</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden sm:table-cell">SKU</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden md:table-cell">Categoria</th>
+                    <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Curva</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Estoque</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Preço</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden lg:table-cell">Vendendo</th>
@@ -482,6 +502,7 @@ export default function Catalog() {
                       </td>
                       <td className="px-3 sm:px-4 py-4 text-sm text-muted-foreground font-mono hidden sm:table-cell">{product.sku}</td>
                       <td className="px-3 sm:px-4 py-4 text-sm text-muted-foreground hidden md:table-cell">{product.category}</td>
+                      <td className="px-3 sm:px-4 py-4">{getABCBadge(product.id)}</td>
                       <td className="px-3 sm:px-4 py-4">
                         <span className={`text-sm font-bold ${product.stock === 0 ? 'text-destructive' : product.stock <= 80 ? 'text-warning' : 'text-success'}`}>
                           {product.stock}
