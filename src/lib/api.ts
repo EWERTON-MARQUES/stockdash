@@ -893,7 +893,7 @@ class ApiService {
     return scored.sort((a, b) => b.sales - a.sales).slice(0, 5);
   }
 
-  // Get stock distribution by category
+  // Get stock distribution by category (returns ALL categories)
   async getCategoryDistribution(): Promise<{ name: string; value: number; stock: number }[]> {
     const allProducts = await this.getAllProductsForStats();
     
@@ -907,10 +907,10 @@ class ApiService {
       });
     });
     
+    // Return ALL categories sorted by value
     return Array.from(categoryMap.entries())
       .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 6);
+      .sort((a, b) => b.value - a.value);
   }
 
   async searchProducts(query: string): Promise<Product[]> {
