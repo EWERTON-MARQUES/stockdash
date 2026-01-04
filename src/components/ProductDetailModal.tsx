@@ -86,7 +86,7 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
 
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR });
     } catch {
       return dateString;
     }
@@ -500,7 +500,7 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                       <tr className="border-b border-border">
                         <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase">Tipo</th>
                         <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase">Quantidade</th>
-                        <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase hidden sm:table-cell">Estoque</th>
+                        <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase">Estoque</th>
                         <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase hidden md:table-cell">Motivo</th>
                         <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground uppercase">Data/Hora</th>
                       </tr>
@@ -530,9 +530,9 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                               {movement.type === 'entry' ? '+' : '-'}{movement.quantity} {product.unit}
                             </span>
                           </td>
-                          <td className="py-3 px-2 hidden sm:table-cell">
+                          <td className="py-3 px-2">
                             <span className="text-muted-foreground">{movement.previousStock}</span>
-                            <span className="mx-1">→</span>
+                            <span className="mx-1 text-muted-foreground">→</span>
                             <span className="font-medium text-foreground">{movement.newStock}</span>
                           </td>
                           <td className="py-3 px-2 hidden md:table-cell text-muted-foreground max-w-[200px] truncate">
