@@ -35,14 +35,21 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
   const [amazon, setAmazon] = useState(false);
   const [mercadoLivre, setMercadoLivre] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [abcClass, setAbcClass] = useState<'A' | 'B' | 'C'>('C');
 
   useEffect(() => {
     if (product && open) {
       setLoadingMovements(true);
       setSelectedImage(0);
-      apiService.getProductMovements(product.id)
-        .then(setMovements)
-        .finally(() => setLoadingMovements(false));
+      
+      // Load movements and ABC class in parallel
+      Promise.all([
+        apiService.getProductMovements(product.id),
+        apiService.getProductABCClass(product.id)
+      ]).then(([movs, abc]) => {
+        setMovements(movs);
+        setAbcClass(abc);
+      }).finally(() => setLoadingMovements(false));
       
       // Load marketplace data
       supabase.from('product_marketplaces').select('*').eq('product_id', product.id).maybeSingle()
@@ -116,6 +123,15 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
       default:
         return type;
     }
+  };
+
+  const getABCBadgeStyle = (curveClass: 'A' | 'B' | 'C') => {
+    const styles = {
+      A: 'bg-success/10 text-success border-success/20',
+      B: 'bg-warning/10 text-warning border-warning/20',
+      C: 'bg-muted text-muted-foreground border-border',
+    };
+    return styles[curveClass];
   };
 
   const images = product.images || [];
@@ -260,10 +276,13 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
                   )}
                 </div>
 
-                {/* Stock Status */}
+                {/* Stock Status and ABC Curve */}
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className={`${product.stock > 0 ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}`}>
                     {product.stock > 0 ? 'DISPONÍVEL' : 'INDISPONÍVEL'}
+                  </Badge>
+                  <Badge variant="outline" className={`${getABCBadgeStyle(abcClass)} font-bold`}>
+                    Curva {abcClass}
                   </Badge>
                   <Badge variant="outline" className="text-foreground">
                     Estoque: {product.stock} {product.unit}

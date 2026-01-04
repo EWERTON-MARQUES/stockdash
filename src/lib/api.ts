@@ -46,10 +46,12 @@ class ApiService {
   private suppliersCache: Supplier[] = [];
   private allProductsCache: Product[] | null = null;
   private allProductsCacheTime: number = 0;
-  private readonly CACHE_DURATION = 3 * 60 * 1000; // 3 minutes for faster refresh
+  private readonly CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for faster refresh
   private configLoaded: boolean = false;
   private configLoadPromise: Promise<ApiConfig | null> | null = null;
   private initPromise: Promise<void> | null = null;
+  private abcCache: Map<string, 'A' | 'B' | 'C'> | null = null;
+  private abcCacheTime: number = 0;
 
   constructor() {
     // Auto-initialize config on service creation
@@ -933,6 +935,90 @@ class ApiService {
         message: error.message || 'Erro ao conectar com a API'
       };
     }
+  }
+
+  // Calculate ABC curve for all products and cache results
+  async calculateABCCurve(): Promise<Map<string, 'A' | 'B' | 'C'>> {
+    const now = Date.now();
+    
+    // Return cached ABC if still valid
+    if (this.abcCache && (now - this.abcCacheTime) < this.CACHE_DURATION) {
+      return this.abcCache;
+    }
+
+    const allProducts = await this.getAllProductsForStats();
+    
+    // Calculate sales score for each product
+    const productsWithScore = allProducts.map(p => ({
+      id: p.id,
+      salesScore: 
+        (p.avgSellsQuantityPast30Days ?? 0) * 30 +
+        (p.avgSellsQuantityPast15Days ?? 0) * 20 +
+        (p.avgSellsQuantityPast7Days ?? 0) * 10 +
+        (p.soldQuantity ?? 0)
+    }));
+
+    // Sort by sales score descending
+    productsWithScore.sort((a, b) => b.salesScore - a.salesScore);
+
+    // Calculate total sales score
+    const totalScore = productsWithScore.reduce((acc, p) => acc + p.salesScore, 0);
+
+    // Calculate cumulative percentage and assign ABC class
+    let cumulative = 0;
+    const abcMap = new Map<string, 'A' | 'B' | 'C'>();
+    
+    productsWithScore.forEach(p => {
+      cumulative += p.salesScore;
+      const cumulativePercentage = totalScore > 0 ? (cumulative / totalScore) * 100 : 100;
+      
+      let curveClass: 'A' | 'B' | 'C';
+      if (cumulativePercentage <= 80) {
+        curveClass = 'A';
+      } else if (cumulativePercentage <= 95) {
+        curveClass = 'B';
+      } else {
+        curveClass = 'C';
+      }
+      
+      abcMap.set(p.id, curveClass);
+    });
+
+    // Cache results
+    this.abcCache = abcMap;
+    this.abcCacheTime = now;
+    
+    return abcMap;
+  }
+
+  // Get ABC curve class for a specific product
+  async getProductABCClass(productId: string): Promise<'A' | 'B' | 'C'> {
+    const abcMap = await this.calculateABCCurve();
+    return abcMap.get(productId) || 'C';
+  }
+
+  // Get ABC classes for multiple products at once
+  async getProductsABCClasses(productIds: string[]): Promise<Map<string, 'A' | 'B' | 'C'>> {
+    const abcMap = await this.calculateABCCurve();
+    const result = new Map<string, 'A' | 'B' | 'C'>();
+    
+    productIds.forEach(id => {
+      result.set(id, abcMap.get(id) || 'C');
+    });
+    
+    return result;
+  }
+
+  // Preload all data for faster initial load
+  async preloadData(): Promise<void> {
+    if (!this.isReady()) return;
+    
+    // Load all products and calculate ABC in parallel
+    await Promise.all([
+      this.getAllProductsForStats(),
+      this.calculateABCCurve(),
+      this.loadAllFilters(),
+    ]);
   }
 }
 

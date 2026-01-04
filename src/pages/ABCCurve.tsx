@@ -41,11 +41,12 @@ export default function ABCCurve() {
     try {
       // Fetch all products to calculate ABC curve
       const allProducts = await apiService.getAllProductsForStats();
+      
+      // Get ABC classes from API (uses cache)
+      const abcMap = await apiService.calculateABCCurve();
 
-      // Calculate sales score based on available API data
-      // Using avgSellsQuantityPast30Days, soldQuantity, and movement frequency
+      // Calculate sales score for sorting and display
       const productsWithScore = allProducts.map(p => {
-        // Weighted score calculation based on sales frequency
         const salesScore = 
           (p.avgSellsQuantityPast30Days ?? 0) * 30 +
           (p.avgSellsQuantityPast15Days ?? 0) * 20 +
@@ -60,21 +61,12 @@ export default function ABCCurve() {
       // Calculate total sales score
       const totalScore = productsWithScore.reduce((acc, p) => acc + p.salesScore, 0);
 
-      // Calculate cumulative percentage and assign ABC class
-      // Following the classic ABC analysis: A=80%, B=15%, C=5%
+      // Calculate cumulative percentage and assign ABC class from cache
       let cumulative = 0;
       const classifiedProducts: ABCProduct[] = productsWithScore.map(p => {
         cumulative += p.salesScore;
         const cumulativePercentage = totalScore > 0 ? (cumulative / totalScore) * 100 : 0;
-        
-        let curveClass: 'A' | 'B' | 'C';
-        if (cumulativePercentage <= 80) {
-          curveClass = 'A';
-        } else if (cumulativePercentage <= 95) {
-          curveClass = 'B';
-        } else {
-          curveClass = 'C';
-        }
+        const curveClass = abcMap.get(p.id) || 'C';
 
         return {
           ...p,
@@ -334,10 +326,10 @@ export default function ABCCurve() {
           </TabsList>
 
           <TabsContent value="all">
-            <ProductTable products={products.slice(0, 100)} />
-            {products.length > 100 && (
+            <ProductTable products={products.slice(0, 200)} />
+            {products.length > 200 && (
               <p className="text-sm text-muted-foreground text-center mt-4">
-                Mostrando os 100 primeiros produtos. Use os filtros para ver por categoria.
+                Mostrando os 200 primeiros produtos de {products.length}. Use as abas para filtrar por categoria.
               </p>
             )}
           </TabsContent>
@@ -348,10 +340,10 @@ export default function ABCCurve() {
             <ProductTable products={products.filter(p => p.curveClass === 'B')} />
           </TabsContent>
           <TabsContent value="C">
-            <ProductTable products={products.filter(p => p.curveClass === 'C').slice(0, 100)} />
-            {stats.totalC > 100 && (
+            <ProductTable products={products.filter(p => p.curveClass === 'C').slice(0, 200)} />
+            {stats.totalC > 200 && (
               <p className="text-sm text-muted-foreground text-center mt-4">
-                Mostrando os 100 primeiros produtos da Curva C.
+                Mostrando os 200 primeiros produtos da Curva C.
               </p>
             )}
           </TabsContent>
