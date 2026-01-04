@@ -89,10 +89,22 @@ export default function Reports() {
     loadData();
   }, [loadData]);
 
-  // Filter products
+  // Filter products - use IDs for accurate filtering
   const filteredProducts = products.filter(p => {
-    if (categoryFilter !== 'all' && p.category !== categoryFilter) return false;
-    if (supplierFilter !== 'all' && p.supplier !== supplierFilter) return false;
+    // Category filter by ID
+    if (categoryFilter !== 'all') {
+      const catId = parseInt(categoryFilter);
+      if (!isNaN(catId) && p.categoryId !== catId) return false;
+      // Fallback to name matching if no ID
+      if (isNaN(catId) && p.category !== categoryFilter) return false;
+    }
+    // Supplier filter by ID
+    if (supplierFilter !== 'all') {
+      const supId = parseInt(supplierFilter);
+      if (!isNaN(supId) && p.supplierId !== supId) return false;
+      // Fallback to name matching if no ID
+      if (isNaN(supId) && p.supplier !== supplierFilter) return false;
+    }
     if (stockFilter === 'in_stock' && p.stock === 0) return false;
     if (stockFilter === 'low_stock' && (p.stock === 0 || p.stock > 80)) return false;
     if (stockFilter === 'out_of_stock' && p.stock !== 0) return false;
@@ -133,14 +145,21 @@ export default function Reports() {
   const avgStock = totalProducts > 0 ? totalStock / totalProducts : 0;
   const inStockCount = filteredProducts.filter(p => p.stock > 80).length;
 
-  // Category analysis - ESTOQUE ONLY
+  // Category analysis - use ALL products for totals, not just filtered
   const categoryAnalysis = categories.map(cat => {
-    const catProducts = filteredProducts.filter(p => p.category === cat.name);
+    // For category analysis, filter from ALL products when supplier/stock filters are applied
+    // This ensures we get accurate category totals
+    const baseProducts = (supplierFilter === 'all' && stockFilter === 'all') 
+      ? products 
+      : products;
+    
+    const catProducts = baseProducts.filter(p => p.categoryId === cat.id);
     const stock = catProducts.reduce((acc, p) => acc + p.stock, 0);
     const costValue = catProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
     const lowStock = catProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
     const outOfStock = catProducts.filter(p => p.stock === 0).length;
     return {
+      id: cat.id,
       name: cat.name,
       products: catProducts.length,
       stock,
@@ -150,14 +169,15 @@ export default function Reports() {
     };
   }).filter(c => c.products > 0).sort((a, b) => b.costValue - a.costValue);
 
-  // Supplier analysis
+  // Supplier analysis - use ALL products for accurate totals
   const supplierAnalysis = suppliers.map(sup => {
-    const supProducts = filteredProducts.filter(p => p.supplier === sup.name);
+    const supProducts = products.filter(p => p.supplierId === sup.id);
     const stock = supProducts.reduce((acc, p) => acc + p.stock, 0);
     const costValue = supProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
     const lowStock = supProducts.filter(p => p.stock > 0 && p.stock <= 80).length;
     const outOfStock = supProducts.filter(p => p.stock === 0).length;
     return {
+      id: sup.id,
       name: sup.name,
       products: supProducts.length,
       stock,
@@ -276,7 +296,7 @@ export default function Reports() {
             <SelectContent>
               <SelectItem value="all">Todas Categorias</SelectItem>
               {categories.map(cat => (
-                <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -288,7 +308,7 @@ export default function Reports() {
             <SelectContent>
               <SelectItem value="all">Todos Fornecedores</SelectItem>
               {suppliers.map(sup => (
-                <SelectItem key={sup.id} value={sup.name}>{sup.name}</SelectItem>
+                <SelectItem key={sup.id} value={String(sup.id)}>{sup.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
