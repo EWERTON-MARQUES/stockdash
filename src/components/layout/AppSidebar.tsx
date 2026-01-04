@@ -1,7 +1,10 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Box, Menu, X, TrendingUp, DollarSign } from 'lucide-react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Box, Menu, X, TrendingUp, DollarSign, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const menuItems = [
   {
@@ -43,7 +46,22 @@ const menuItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      toast.success('Logout realizado com sucesso!');
+      navigate('/auth');
+    } catch (error) {
+      toast.error('Erro ao fazer logout');
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   const SidebarContent = () => (
     <>
@@ -77,16 +95,26 @@ export function AppSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3">
+      <div className="px-4 py-4 border-t border-sidebar-border space-y-3">
+        <div className="flex items-center gap-3 px-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-white">
             <span className="text-sm font-medium text-sidebar-foreground">A</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-white">Admin</span>
-            <span className="text-xs text-white">admin@empresa.com</span>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="text-sm font-medium text-white truncate">Admin</span>
+            <span className="text-xs text-white/70 truncate">Sessão: 10 min</span>
           </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="w-full gap-2 bg-destructive/10 border-destructive/30 text-white hover:bg-destructive/20 hover:text-white"
+        >
+          <LogOut className="w-4 h-4" />
+          {loggingOut ? 'Saindo...' : 'Sair do Sistema'}
+        </Button>
       </div>
     </>
   );
