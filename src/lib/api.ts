@@ -558,22 +558,17 @@ class ApiService {
       const transformed = products.slice(0, 8).map(item => {
         const p = this.transformWedropProduct(item);
         
-        // Determine movement type based on recent sales data from API
-        // If avgSellsQuantityPast7Days > 0, it means sales (exit) happened recently
-        const recentSales = p.avgSellsQuantityPast7Days ?? 0;
-        const soldQty = p.soldQuantity ?? 0;
+        // Use soldQuantity from API for the last movement quantity
+        // soldQuantity represents the exact quantity of the last sale/movement
+        const lastMovementQty = p.soldQuantity ?? 0;
         
-        // If there are recent sales (past 7 days average > 0), it's likely an exit
+        // If soldQuantity > 0, it was a sale (exit)
         // Otherwise it's an entry (stock replenishment)
-        const hasRecentSales = recentSales > 0 || soldQty > 0;
-        const movementType: 'entry' | 'exit' = hasRecentSales ? 'exit' : 'entry';
+        const movementType: 'entry' | 'exit' = lastMovementQty > 0 ? 'exit' : 'entry';
         
-        // Calculate approximate movement quantity
-        // For exits: use 7-day average sales or soldQuantity
-        // For entries: estimate based on stock level or default
-        const movementQuantity = hasRecentSales 
-          ? Math.round(recentSales * 7) || soldQty || 1
-          : Math.max(1, Math.round(p.stock * 0.1) || 1);
+        // Use the exact soldQuantity from API for exits
+        // For entries, default to 1 since we don't have entry quantity data
+        const movementQuantity = lastMovementQty > 0 ? lastMovementQty : 1;
         
         return { ...p, movementType, movementQuantity };
       });
