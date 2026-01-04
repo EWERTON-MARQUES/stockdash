@@ -14,6 +14,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 interface ProductWithMovement extends Product {
   lastMovement?: StockMovement;
   movementType?: 'entry' | 'exit';
+  movementQuantity?: number;
 }
 
 const CHART_COLORS = ['hsl(205, 90%, 45%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(0, 72%, 50%)', 'hsl(280, 60%, 50%)', 'hsl(180, 60%, 45%)'];
@@ -365,6 +366,9 @@ export default function Dashboard() {
                   Movimentação
                 </th>
                 <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Quantidade
+                </th>
+                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Estoque
                 </th>
                 <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">
@@ -413,6 +417,13 @@ export default function Dashboard() {
                         <><TrendingUp className="w-3 h-3 mr-1" /> Entrada</>
                       )}
                     </Badge>
+                  </td>
+                  <td className="px-3 sm:px-5 py-3">
+                    <span className={`text-sm font-semibold ${
+                      product.movementType === 'exit' ? 'text-destructive' : 'text-success'
+                    }`}>
+                      {product.movementType === 'exit' ? '-' : '+'}{product.movementQuantity || 1}
+                    </span>
                   </td>
                   <td className="px-3 sm:px-5 py-3">
                     <div className="flex items-center gap-2">
