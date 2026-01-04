@@ -78,7 +78,11 @@ class ApiService {
     }
 
     const url = `${config.baseUrl}${endpoint}`;
-    console.log('Fetching:', url);
+    
+    // Only log in development
+    if (import.meta.env.DEV) {
+      console.log('Fetching:', url);
+    }
 
     const response = await fetch(url, {
       ...options,
@@ -91,8 +95,12 @@ class ApiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('API Error:', errorData);
-      throw new Error(errorData.message || `API Error: ${response.status}`);
+      
+      if (import.meta.env.DEV) {
+        console.error('API Error:', errorData);
+      }
+      
+      throw new Error('Erro ao comunicar com a API externa');
     }
 
     return response.json();
@@ -240,7 +248,9 @@ class ApiService {
         totalPages
       };
     } catch (error) {
-      console.error('Error fetching products:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching products:', error);
+      }
       return { products: [], total: 0, page: 1, limit, totalPages: 0 };
     }
   }
@@ -320,7 +330,9 @@ class ApiService {
       }
       return undefined;
     } catch (error) {
-      console.error('Error fetching product:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching product:', error);
+      }
       return undefined;
     }
   }
@@ -421,7 +433,9 @@ class ApiService {
         };
       });
     } catch (error) {
-      console.error('Error fetching movements:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching movements:', error);
+      }
       return [];
     }
   }
@@ -465,7 +479,9 @@ class ApiService {
       
       return allProducts;
     } catch (error) {
-      console.error('Error fetching all products:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching all products:', error);
+      }
       return [];
     }
   }
