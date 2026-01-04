@@ -35,6 +35,7 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
   const [amazon, setAmazon] = useState(false);
   const [mercadoLivre, setMercadoLivre] = useState(false);
   const [imageEdited, setImageEdited] = useState(false);
+  const [description, setDescription] = useState<string>('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [abcClass, setAbcClass] = useState<'A' | 'B' | 'C'>('C');
 
@@ -42,18 +43,27 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
     if (product && open) {
       setLoadingMovements(true);
       setSelectedImage(0);
-      
-      // Load movements and ABC class in parallel
+      setDescription(product.description || '');
+
+      // Load movements, ABC class and full product detail (for description) in parallel
       Promise.all([
         apiService.getProductMovements(product.id),
-        apiService.getProductABCClass(product.id)
-      ]).then(([movs, abc]) => {
-        setMovements(movs);
-        setAbcClass(abc);
-      }).finally(() => setLoadingMovements(false));
-      
+        apiService.getProductABCClass(product.id),
+        apiService.getProductDetail(product.id),
+      ])
+        .then(([movs, abc, full]) => {
+          setMovements(movs);
+          setAbcClass(abc);
+          setDescription(full?.description || product.description || '');
+        })
+        .finally(() => setLoadingMovements(false));
+
       // Load marketplace and image edited data
-      supabase.from('product_marketplaces').select('*').eq('product_id', product.id).maybeSingle()
+      supabase
+        .from('product_marketplaces')
+        .select('*')
+        .eq('product_id', product.id)
+        .maybeSingle()
         .then(({ data }) => {
           setAmazon(data?.amazon || false);
           setMercadoLivre(data?.mercado_livre || false);
@@ -67,17 +77,20 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
     const newAmazon = field === 'amazon' ? value : amazon;
     const newML = field === 'mercado_livre' ? value : mercadoLivre;
     const newImageEdited = field === 'image_edited' ? value : imageEdited;
-    
+
     setAmazon(newAmazon);
     setMercadoLivre(newML);
     setImageEdited(newImageEdited);
 
-    const { error } = await supabase.from('product_marketplaces').upsert({
-      product_id: product.id,
-      amazon: newAmazon,
-      mercado_livre: newML,
-      image_edited: newImageEdited,
-    }, { onConflict: 'product_id' });
+    const { error } = await supabase.from('product_marketplaces').upsert(
+      {
+        product_id: product.id,
+        amazon: newAmazon,
+        mercado_livre: newML,
+        image_edited: newImageEdited,
+      },
+      { onConflict: 'product_id' },
+    );
 
     if (error) {
       toast.error('Erro ao salvar dados');
@@ -514,14 +527,14 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
             </div>
 
             {/* Description Section - Full Width */}
-            {product.description && (
+            {description && (
               <div className="mt-6 bg-card rounded-xl border border-border p-4 sm:p-6">
                 <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
                   Descrição do Produto
                 </h3>
                 <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap leading-relaxed">
-                  {product.description}
+                  {description}
                 </div>
               </div>
             )}

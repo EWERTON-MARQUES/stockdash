@@ -612,40 +612,48 @@ class ApiService {
   // Fetch all products for accurate stats with caching
   async getAllProductsForStats(): Promise<Product[]> {
     const now = Date.now();
-    
+
     // Return cached data if still valid
-    if (this.allProductsCache && (now - this.allProductsCacheTime) < this.CACHE_DURATION) {
+    if (this.allProductsCache && now - this.allProductsCacheTime < this.CACHE_DURATION) {
       return this.allProductsCache;
     }
 
     const config = this.getConfig();
-    
+
     if (!config?.baseUrl || !config?.token) {
       return [];
     }
 
     try {
+      // Get a reliable total from the API (used to determine how many pages to fetch)
+      const initialData = await this.fetchWithAuth(
+        `/catalog?limit=1&offset=0&search=&categoryId=0&suplierId=&brand=&orderBy=id%7Cdesc`,
+      );
+      const totalFromApi: number = Number(initialData?.total || 0);
+
+      const limit = 50; // Wedrop endpoint commonly uses 50; keep it stable for correct offsets
+      const totalPages = totalFromApi > 0 ? Math.ceil(totalFromApi / limit) : 50;
+
       const allProducts: Product[] = [];
-      let page = 1;
-      const limit = 100;
-      let hasMore = true;
-      
-      // Fetch all pages
-      while (hasMore && page <= 50) { // Max 50 pages (5000 products)
+
+      for (let page = 1; page <= totalPages && page <= 100; page++) {
         const result = await this.getProducts(page, limit);
         allProducts.push(...result.products);
-        
-        if (result.products.length < limit || allProducts.length >= result.total) {
-          hasMore = false;
-        } else {
-          page++;
-        }
+
+        // Safety stop if API starts returning empty pages
+        if (result.products.length === 0) break;
+
+        // If we don't have totalFromApi (unexpected), stop when page isn't full
+        if (totalFromApi === 0 && result.products.length < limit) break;
+
+        // If we do have totalFromApi, stop when we've collected all
+        if (totalFromApi > 0 && allProducts.length >= totalFromApi) break;
       }
-      
+
       // Cache the results
       this.allProductsCache = allProducts;
       this.allProductsCacheTime = now;
-      
+
       return allProducts;
     } catch (error) {
       if (import.meta.env.DEV) {
