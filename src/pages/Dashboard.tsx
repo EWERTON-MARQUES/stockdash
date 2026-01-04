@@ -15,6 +15,7 @@ interface ProductWithMovement extends Product {
   lastMovement?: StockMovement;
   movementType?: 'entry' | 'exit';
   movementQuantity?: number;
+  movementDate?: string;
 }
 
 const CHART_COLORS = ['hsl(205, 90%, 45%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(0, 72%, 50%)', 'hsl(280, 60%, 50%)', 'hsl(180, 60%, 45%)'];
@@ -368,6 +369,9 @@ export default function Dashboard() {
                 <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Quantidade
                 </th>
+                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">
+                  Data/Hora
+                </th>
                 <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Estoque
                 </th>
@@ -423,6 +427,20 @@ export default function Dashboard() {
                       product.movementType === 'exit' ? 'text-destructive' : 'text-success'
                     }`}>
                       {product.movementType === 'exit' ? '-' : '+'}{product.movementQuantity || 1}
+                    </span>
+                  </td>
+                  <td className="px-3 sm:px-5 py-3 hidden md:table-cell">
+                    <span className="text-xs text-muted-foreground">
+                      {product.movementDate 
+                        ? new Date(product.movementDate).toLocaleString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : '-'
+                      }
                     </span>
                   </td>
                   <td className="px-3 sm:px-5 py-3">
