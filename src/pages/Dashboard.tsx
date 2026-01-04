@@ -76,7 +76,9 @@ export default function Dashboard() {
   };
 
   const formatShortDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // Parse date as local date (YYYY-MM-DD format) to avoid timezone issues
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   };
 
@@ -353,32 +355,32 @@ export default function Dashboard() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[800px]">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Produto
                 </th>
-                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   SKU
                 </th>
-                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Movimentação
                 </th>
-                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Quantidade
                 </th>
-                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Data/Hora
                 </th>
-                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Estoque
                 </th>
-                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Preço
                 </th>
-                <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Status
                 </th>
               </tr>
@@ -386,27 +388,27 @@ export default function Dashboard() {
             <tbody className="divide-y divide-border">
               {movementProducts.map((product) => (
                 <tr key={product.id} className="table-row-hover">
-                  <td className="px-3 sm:px-5 py-3">
-                    <div className="flex items-center gap-2 sm:gap-3">
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2">
                       {product.imageUrl && (
                         <img 
                           src={product.imageUrl} 
                           alt={product.name}
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover border border-border"
+                          className="w-8 h-8 rounded-lg object-cover border border-border flex-shrink-0"
                         />
                       )}
                       <Link
                         to={`/catalogo`}
-                        className="font-medium text-foreground hover:text-primary transition-colors line-clamp-1 max-w-[120px] sm:max-w-[200px] text-sm"
+                        className="font-medium text-foreground hover:text-primary transition-colors line-clamp-1 max-w-[150px] text-sm"
                       >
                         {product.name}
                       </Link>
                     </div>
                   </td>
-                  <td className="px-3 sm:px-5 py-3 text-sm text-muted-foreground font-mono hidden sm:table-cell">
+                  <td className="px-3 py-3 text-sm text-muted-foreground font-mono whitespace-nowrap">
                     {product.sku}
                   </td>
-                  <td className="px-3 sm:px-5 py-3">
+                  <td className="px-3 py-3">
                     <Badge 
                       variant="outline" 
                       className={
@@ -422,14 +424,14 @@ export default function Dashboard() {
                       )}
                     </Badge>
                   </td>
-                  <td className="px-3 sm:px-5 py-3">
+                  <td className="px-3 py-3">
                     <span className={`text-sm font-semibold ${
                       product.movementType === 'exit' ? 'text-destructive' : 'text-success'
                     }`}>
                       {product.movementType === 'exit' ? '-' : '+'}{product.movementQuantity || 1}
                     </span>
                   </td>
-                  <td className="px-3 sm:px-5 py-3 hidden md:table-cell">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <span className="text-xs text-muted-foreground">
                       {product.movementDate 
                         ? new Date(product.movementDate).toLocaleString('pt-BR', {
@@ -444,7 +446,7 @@ export default function Dashboard() {
                       }
                     </span>
                   </td>
-                  <td className="px-3 sm:px-5 py-3">
+                  <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-bold ${
                         product.stock === 0 
@@ -457,10 +459,10 @@ export default function Dashboard() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-3 sm:px-5 py-3 text-sm font-semibold text-foreground hidden md:table-cell">
+                  <td className="px-3 py-3 text-sm font-semibold text-foreground whitespace-nowrap">
                     {formatCurrency(product.price)}
                   </td>
-                  <td className="px-3 sm:px-5 py-3 hidden lg:table-cell">
+                  <td className="px-3 py-3">
                     <StatusBadge status={product.status} />
                   </td>
                 </tr>
