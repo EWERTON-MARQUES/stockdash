@@ -530,6 +530,38 @@ class ApiService {
     }
   }
 
+  // Get stock movement history for a specific product
+  async getProductStockHistory(productId: string): Promise<{ type: 'entry' | 'exit'; quantity: number; createdAt: string } | null> {
+    try {
+      // Try to fetch stock history for this product
+      const data = await this.fetchWithAuth(`/stock-history?productId=${productId}&limit=1`);
+      
+      let movements: any[] = [];
+      if (Array.isArray(data)) {
+        movements = data;
+      } else if (data?.results) {
+        movements = data.results;
+      } else if (data?.data) {
+        movements = data.data;
+      } else if (data?.items) {
+        movements = data.items;
+      }
+      
+      if (movements.length > 0) {
+        const lastMovement = movements[0];
+        // type "S" = Saída (exit), "E" = Entrada (entry)
+        const movementType: 'entry' | 'exit' = lastMovement.type === 'S' ? 'exit' : 'entry';
+        const quantity = lastMovement.totalQuantity || 1;
+        return { type: movementType, quantity, createdAt: lastMovement.createdAt };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching stock history for product:', productId, error);
+      return null;
+    }
+  }
+
   // Get products with recent movements (sorted by update date)
   async getRecentMovementProducts(): Promise<(Product & { movementType: 'entry' | 'exit'; movementQuantity: number })[]> {
     const config = this.getConfig();
@@ -555,25 +587,28 @@ class ApiService {
         products = data.items;
       }
 
-      const transformed = products.slice(0, 8).map(item => {
-        const p = this.transformWedropProduct(item);
-        
-        // Use soldQuantity from API for the last movement quantity
-        // soldQuantity represents the exact quantity of the last sale/movement
-        const lastMovementQty = p.soldQuantity ?? 0;
-        
-        // If soldQuantity > 0, it was a sale (exit)
-        // Otherwise it's an entry (stock replenishment)
-        const movementType: 'entry' | 'exit' = lastMovementQty > 0 ? 'exit' : 'entry';
-        
-        // Use the exact soldQuantity from API for exits
-        // For entries, default to 1 since we don't have entry quantity data
-        const movementQuantity = lastMovementQty > 0 ? lastMovementQty : 1;
-        
-        return { ...p, movementType, movementQuantity };
-      });
+      // Transform products and fetch their stock history
+      const transformedProducts = products.slice(0, 8).map(item => this.transformWedropProduct(item));
       
-      return transformed;
+      // Fetch stock history for each product in parallel
+      const productsWithMovements = await Promise.all(
+        transformedProducts.map(async (p) => {
+          const stockHistory = await this.getProductStockHistory(p.id);
+          
+          if (stockHistory) {
+            return { 
+              ...p, 
+              movementType: stockHistory.type, 
+              movementQuantity: stockHistory.quantity 
+            };
+          }
+          
+          // Fallback if no stock history available
+          return { ...p, movementType: 'entry' as const, movementQuantity: 1 };
+        })
+      );
+      
+      return productsWithMovements;
     } catch (error) {
       console.error('Error fetching recent products:', error);
       return [];
