@@ -337,19 +337,19 @@ class ApiService {
     }
 
     try {
-      // Try the stock history endpoint
+      // Try the correct stock history endpoint first: /products/{id}/stock-history
       let data;
       try {
-        data = await this.fetchWithAuth(`/catalog/products/${productId}/stock-history`);
+        data = await this.fetchWithAuth(`/products/${productId}/stock-history`);
       } catch {
         try {
-          data = await this.fetchWithAuth(`/catalog/products/${productId}/movements`);
+          data = await this.fetchWithAuth(`/catalog/products/${productId}/stock-history`);
         } catch {
           try {
-            data = await this.fetchWithAuth(`/products/${productId}/stock-movements`);
+            data = await this.fetchWithAuth(`/catalog/products/${productId}/movements`);
           } catch {
             try {
-              data = await this.fetchWithAuth(`/stock/movements?product_id=${productId}`);
+              data = await this.fetchWithAuth(`/products/${productId}/stock-movements`);
             } catch {
               // Return empty if no movements endpoint available
               return [];
@@ -374,12 +374,12 @@ class ApiService {
       return movements.map((m: any) => ({
         id: String(m.id || Math.random()),
         productId: String(m.product_id || m.productId || productId),
-        type: normalizeMovementType(m.type || m.movementType, m.quantity || m.qty),
-        quantity: Math.abs(Number(m.quantity || m.qty || 0)),
-        previousStock: Number(m.previous_stock || m.previousStock || m.oldQuantity || 0),
-        newStock: Number(m.new_stock || m.newStock || m.newQuantity || m.current_stock || 0),
+        type: normalizeMovementType(m.type || m.movementType, m.totalQuantity || m.quantity || m.qty),
+        quantity: Math.abs(Number(m.totalQuantity || m.quantity || m.qty || 0)),
+        previousStock: Number(m.previous_stock || m.previousStock || m.oldQuantity || m.avaiableQuantity || 0),
+        newStock: Number(m.new_stock || m.newStock || m.newQuantity || m.current_stock || m.balance || 0),
         reason: m.reason || m.description || m.note || m.obs || 'Movimentação',
-        reference: m.reference || m.order_id || m.document || m.orderId || '',
+        reference: m.reference || m.order_id || m.document || m.orderId || m.fullfilmentOrderId || '',
         userId: String(m.user_id || m.userId || 'system'),
         userName: m.user_name || m.userName || m.user?.name || 'Sistema',
         createdAt: m.created_at || m.createdAt || m.date || new Date().toISOString(),
@@ -566,7 +566,7 @@ class ApiService {
   }
 
   // Get products with recent movements (sorted by update date)
-  async getRecentMovementProducts(): Promise<(Product & { movementType: 'entry' | 'exit'; movementQuantity: number })[]> {
+  async getRecentMovementProducts(): Promise<(Product & { movementType: 'entry' | 'exit'; movementQuantity: number; movementDate?: string })[]> {
     const config = this.getConfig();
     
     if (!config?.baseUrl || !config?.token) {
@@ -602,12 +602,13 @@ class ApiService {
             return { 
               ...p, 
               movementType: stockHistory.type, 
-              movementQuantity: stockHistory.quantity 
+              movementQuantity: stockHistory.quantity,
+              movementDate: stockHistory.createdAt
             };
           }
           
           // Fallback if no stock history available
-          return { ...p, movementType: 'entry' as const, movementQuantity: 1 };
+          return { ...p, movementType: 'entry' as const, movementQuantity: 1, movementDate: undefined };
         })
       );
       
