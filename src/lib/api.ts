@@ -285,8 +285,15 @@ class ApiService {
     this.suppliersCache.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Fetch categories and suppliers from ALL products
+  // Flag to track if all filters have been loaded
+  private filtersFullyLoaded: boolean = false;
+
+  // Fetch categories and suppliers from ALL products (forces full load)
   async loadAllFilters(): Promise<void> {
+    // Clear existing cache to ensure fresh data from ALL products
+    this.categoriesCache = [];
+    this.suppliersCache = [];
+    
     const allProducts = await this.getAllProductsForStats();
     this.extractFiltersFromProducts(allProducts.map(p => ({
       categoryId: p.categoryId,
@@ -294,22 +301,30 @@ class ApiService {
       suplierId: p.supplierId,
       suplier: { name: p.supplier }
     })));
+    
+    this.filtersFullyLoaded = true;
   }
 
   async getCategories(): Promise<Category[]> {
-    // If cache is small, load from all products
-    if (this.categoriesCache.length < 5) {
+    // Always load from all products if not fully loaded yet
+    if (!this.filtersFullyLoaded) {
       await this.loadAllFilters();
     }
     return this.categoriesCache;
   }
 
   async getSuppliers(): Promise<Supplier[]> {
-    // If cache is small, load from all products
-    if (this.suppliersCache.length < 5) {
+    // Always load from all products if not fully loaded yet
+    if (!this.filtersFullyLoaded) {
       await this.loadAllFilters();
     }
     return this.suppliersCache;
+  }
+
+  // Method to force reload filters from API
+  async reloadFilters(): Promise<void> {
+    this.filtersFullyLoaded = false;
+    await this.loadAllFilters();
   }
 
   async getProductDetail(id: string): Promise<Product | undefined> {
