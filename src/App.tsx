@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Catalog from "./pages/Catalog";
 import ProductDetail from "./pages/ProductDetail";
@@ -22,14 +24,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/catalogo" element={<Catalog />} />
-          <Route path="/catalogo/:id" element={<ProductDetail />} />
-          <Route path="/pedidos" element={<Orders />} />
-          <Route path="/relatorios" element={<Reports />} />
-          <Route path="/configuracoes" element={<Settings />} />
-          <Route path="/curva-abc" element={<ABCCurve />} />
-          <Route path="/financeiro" element={<Financial />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/catalogo" element={<ProtectedRoute><Catalog /></ProtectedRoute>} />
+          <Route path="/catalogo/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
+          <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/curva-abc" element={<ProtectedRoute><ABCCurve /></ProtectedRoute>} />
+          <Route path="/financeiro" element={<ProtectedRoute><Financial /></ProtectedRoute>} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
