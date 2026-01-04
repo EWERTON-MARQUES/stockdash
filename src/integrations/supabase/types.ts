@@ -261,6 +261,7 @@ export type Database = {
           amazon: boolean
           created_at: string
           id: string
+          image_edited: boolean
           mercado_livre: boolean
           product_id: string
           updated_at: string
@@ -269,6 +270,7 @@ export type Database = {
           amazon?: boolean
           created_at?: string
           id?: string
+          image_edited?: boolean
           mercado_livre?: boolean
           product_id: string
           updated_at?: string
@@ -277,6 +279,7 @@ export type Database = {
           amazon?: boolean
           created_at?: string
           id?: string
+          image_edited?: boolean
           mercado_livre?: boolean
           product_id?: string
           updated_at?: string

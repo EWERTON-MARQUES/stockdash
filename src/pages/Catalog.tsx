@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Search, Filter, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, RefreshCw, Image, ArrowUp, ArrowDown, Store } from 'lucide-react';
+import { Search, Filter, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, RefreshCw, Image, ArrowUp, ArrowDown, Store, ImageIcon, Check, Minus } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -24,7 +24,7 @@ import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MarketplaceData {
-  [productId: string]: { amazon: boolean; mercado_livre: boolean };
+  [productId: string]: { amazon: boolean; mercado_livre: boolean; image_edited: boolean };
 }
 
 export default function Catalog() {
@@ -56,7 +56,11 @@ export default function Catalog() {
     if (data) {
       const mapped: MarketplaceData = {};
       data.forEach(item => {
-        mapped[item.product_id] = { amazon: item.amazon, mercado_livre: item.mercado_livre };
+        mapped[item.product_id] = { 
+          amazon: item.amazon, 
+          mercado_livre: item.mercado_livre,
+          image_edited: item.image_edited ?? false
+        };
       });
       setMarketplaceData(mapped);
     }
@@ -250,6 +254,22 @@ export default function Catalog() {
   const isSelling = (productId: string) => {
     const mp = marketplaceData[productId];
     return mp && (mp.amazon || mp.mercado_livre);
+  };
+
+  const getImageEditedBadge = (productId: string) => {
+    const mp = marketplaceData[productId];
+    const edited = mp?.image_edited ?? false;
+    return edited ? (
+      <Badge className="bg-success/10 text-success border-success/20 text-xs gap-1">
+        <Check className="w-3 h-3" />
+        SIM
+      </Badge>
+    ) : (
+      <Badge variant="outline" className="text-muted-foreground text-xs gap-1">
+        <Minus className="w-3 h-3" />
+        NÃO
+      </Badge>
+    );
   };
 
   const renderPageNumbers = () => {
@@ -503,6 +523,7 @@ export default function Catalog() {
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Estoque</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Preço</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden lg:table-cell">Vendendo</th>
+                    <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden xl:table-cell">Img Editada</th>
                     <th className="px-3 sm:px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase hidden sm:table-cell">Status</th>
                   </tr>
                 </thead>
@@ -538,6 +559,9 @@ export default function Catalog() {
                       <td className="px-3 sm:px-4 py-4 text-sm font-semibold text-foreground">{formatCurrency(product.price)}</td>
                       <td className="px-3 sm:px-4 py-4 hidden lg:table-cell">
                         {getMarketplaceBadges(product.id) || <span className="text-xs text-muted-foreground">-</span>}
+                      </td>
+                      <td className="px-3 sm:px-4 py-4 hidden xl:table-cell">
+                        {getImageEditedBadge(product.id)}
                       </td>
                       <td className="px-3 sm:px-4 py-4 hidden sm:table-cell"><StatusBadge status={product.status} /></td>
                     </tr>
