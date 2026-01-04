@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,18 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Lock, Mail, Shield, Sparkles } from 'lucide-react';
+import { Lock, Mail, Shield, Sparkles, AlertTriangle } from 'lucide-react';
 
 const authSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+  email: z.string().email('Email inválido').max(255, 'Email muito longo'),
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').max(128, 'Senha muito longa'),
 });
+
+// Rate limiting configuration
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [remainingTime, setRemainingTime] = useState(0);
   const navigate = useNavigate();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -32,12 +40,58 @@ export default function Auth() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Check for stored lockout
+    const storedLockout = sessionStorage.getItem('auth_lockout');
+    if (storedLockout) {
+      const lockoutTime = parseInt(storedLockout, 10);
+      if (lockoutTime > Date.now()) {
+        setLockedUntil(lockoutTime);
+      } else {
+        sessionStorage.removeItem('auth_lockout');
+        sessionStorage.removeItem('auth_attempts');
+      }
+    }
+
+    const storedAttempts = sessionStorage.getItem('auth_attempts');
+    if (storedAttempts) {
+      setAttempts(parseInt(storedAttempts, 10));
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [navigate]);
+
+  useEffect(() => {
+    if (lockedUntil) {
+      timerRef.current = setInterval(() => {
+        const remaining = Math.ceil((lockedUntil - Date.now()) / 1000);
+        if (remaining <= 0) {
+          setLockedUntil(null);
+          setAttempts(0);
+          sessionStorage.removeItem('auth_lockout');
+          sessionStorage.removeItem('auth_attempts');
+          if (timerRef.current) clearInterval(timerRef.current);
+        } else {
+          setRemainingTime(remaining);
+        }
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [lockedUntil]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check if locked
+    if (lockedUntil && lockedUntil > Date.now()) {
+      toast.error('Muitas tentativas. Aguarde antes de tentar novamente.');
+      return;
+    }
+
     const validation = authSchema.safeParse({ email, password });
     if (!validation.success) {
       toast.error(validation.error.errors[0].message);
@@ -47,22 +101,35 @@ export default function Auth() {
     setLoading(true);
     
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
     
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        toast.error('Credenciais inválidas');
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      sessionStorage.setItem('auth_attempts', String(newAttempts));
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        const lockoutTime = Date.now() + LOCKOUT_DURATION;
+        setLockedUntil(lockoutTime);
+        sessionStorage.setItem('auth_lockout', String(lockoutTime));
+        toast.error('Conta bloqueada temporariamente. Tente novamente em 15 minutos.');
+      } else if (error.message.includes('Invalid login credentials')) {
+        toast.error(`Credenciais inválidas. ${MAX_ATTEMPTS - newAttempts} tentativas restantes.`);
       } else {
         toast.error('Erro ao fazer login');
       }
     } else {
+      sessionStorage.removeItem('auth_attempts');
+      sessionStorage.removeItem('auth_lockout');
       toast.success('Bem-vindo!');
       navigate('/');
     }
     setLoading(false);
   };
+
+  const isLocked = lockedUntil && lockedUntil > Date.now();
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -122,6 +189,19 @@ export default function Auth() {
             <span className="text-xs text-slate-400">Conexão Segura • SSL/TLS</span>
           </div>
 
+          {/* Lockout warning */}
+          {isLocked && (
+            <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <div>
+                <p className="text-red-400 text-sm font-medium">Acesso bloqueado</p>
+                <p className="text-red-400/70 text-xs">
+                  Aguarde {Math.floor(remainingTime / 60)}:{String(remainingTime % 60).padStart(2, '0')} para tentar novamente
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Login form */}
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
@@ -137,7 +217,9 @@ export default function Auth() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="pl-11 h-12 bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+                  disabled={isLocked}
+                  autoComplete="email"
+                  className="pl-11 h-12 bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200 disabled:opacity-50"
                 />
               </div>
             </div>
@@ -155,21 +237,28 @@ export default function Auth() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="pl-11 h-12 bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+                  disabled={isLocked}
+                  autoComplete="current-password"
+                  className="pl-11 h-12 bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200 disabled:opacity-50"
                 />
               </div>
             </div>
 
             <Button 
               type="submit" 
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98]" 
-              disabled={loading}
+              className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
+              disabled={loading || isLocked}
             >
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Autenticando...</span>
                 </div>
+              ) : isLocked ? (
+                <span className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Bloqueado
+                </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
