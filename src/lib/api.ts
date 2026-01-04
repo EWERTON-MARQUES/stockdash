@@ -359,11 +359,22 @@ class ApiService {
       }
       
       const movements = Array.isArray(data) ? data : (data?.data || data?.movements || data?.history || []);
-      
+
+      const normalizeMovementType = (rawType: any, rawQty: any): StockMovement['type'] => {
+        const t = rawType == null ? '' : String(rawType).trim().toUpperCase();
+        if (t === 'S' || t === 'SAIDA' || t === 'SAÍDA' || t === 'EXIT') return 'exit';
+        if (t === 'E' || t === 'ENTRADA' || t === 'ENTRY') return 'entry';
+        if (t === 'A' || t === 'AJUSTE' || t === 'ADJUSTMENT') return 'adjustment';
+        if (t === 'R' || t === 'RETORNO' || t === 'RETURN') return 'return';
+
+        const qty = Number(rawQty ?? 0);
+        return qty > 0 ? 'entry' : 'exit';
+      };
+
       return movements.map((m: any) => ({
         id: String(m.id || Math.random()),
         productId: String(m.product_id || m.productId || productId),
-        type: m.type || m.movementType || (m.quantity > 0 ? 'entry' : 'exit'),
+        type: normalizeMovementType(m.type || m.movementType, m.quantity || m.qty),
         quantity: Math.abs(Number(m.quantity || m.qty || 0)),
         previousStock: Number(m.previous_stock || m.previousStock || m.oldQuantity || 0),
         newStock: Number(m.new_stock || m.newStock || m.newQuantity || m.current_stock || 0),
@@ -530,32 +541,24 @@ class ApiService {
     }
   }
 
-  // Get stock movement history for a specific product
+  // Get last stock movement for a specific product
   async getProductStockHistory(productId: string): Promise<{ type: 'entry' | 'exit'; quantity: number; createdAt: string } | null> {
     try {
-      // Try to fetch stock history for this product
-      const data = await this.fetchWithAuth(`/stock-history?productId=${productId}&limit=1`);
-      
-      let movements: any[] = [];
-      if (Array.isArray(data)) {
-        movements = data;
-      } else if (data?.results) {
-        movements = data.results;
-      } else if (data?.data) {
-        movements = data.data;
-      } else if (data?.items) {
-        movements = data.items;
-      }
-      
-      if (movements.length > 0) {
-        const lastMovement = movements[0];
-        // type "S" = Saída (exit), "E" = Entrada (entry)
-        const movementType: 'entry' | 'exit' = lastMovement.type === 'S' ? 'exit' : 'entry';
-        const quantity = lastMovement.totalQuantity || 1;
-        return { type: movementType, quantity, createdAt: lastMovement.createdAt };
-      }
-      
-      return null;
+      const movements = await this.getProductMovements(productId);
+      if (!movements.length) return null;
+
+      // Take the latest movement by createdAt
+      const latest = movements
+        .slice()
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+      if (!latest) return null;
+
+      return {
+        type: latest.type === 'exit' ? 'exit' : 'entry',
+        quantity: latest.quantity || 1,
+        createdAt: latest.createdAt,
+      };
     } catch (error) {
       console.error('Error fetching stock history for product:', productId, error);
       return null;
