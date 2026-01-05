@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, RefreshCw, DollarSign, TrendingUp, TrendingDown, Calendar, FileText, ArrowUpRight, ArrowDownRight, Pencil, Trash2, Tags, PieChart, BarChart3 } from 'lucide-react';
+import { Plus, RefreshCw, DollarSign, TrendingUp, TrendingDown, Calendar, FileText, ArrowUpRight, ArrowDownRight, Pencil, Trash2, Tags, PieChart, BarChart3, LayoutDashboard } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { accountPayableSchema, accountReceivableSchema, categorySchema } from '@/lib/validation/financial';
 import { z } from 'zod';
+import { FinancialReports } from '@/components/financial/FinancialReports';
 
 interface AccountPayable {
   id: string;
@@ -677,13 +678,25 @@ export default function Financial() {
         </div>
       </div>
 
-      <Tabs defaultValue="payables" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 gap-1">
+      <Tabs defaultValue="reports" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 mb-4 gap-1">
+          <TabsTrigger value="reports" className="text-xs sm:text-sm gap-1">
+            <LayoutDashboard className="w-3 h-3 hidden sm:inline" />
+            Relatórios
+          </TabsTrigger>
           <TabsTrigger value="payables" className="text-xs sm:text-sm">Contas a Pagar</TabsTrigger>
           <TabsTrigger value="receivables" className="text-xs sm:text-sm">Contas a Receber</TabsTrigger>
           <TabsTrigger value="cashflow" className="text-xs sm:text-sm">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="dre" className="text-xs sm:text-sm">DRE</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="reports">
+          <FinancialReports 
+            cashFlow={cashFlow} 
+            payables={payables} 
+            receivables={receivables} 
+          />
+        </TabsContent>
 
         <TabsContent value="payables">
           <div className="flex justify-end mb-4">
