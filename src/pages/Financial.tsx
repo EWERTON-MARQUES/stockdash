@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, RefreshCw, DollarSign, TrendingUp, TrendingDown, Calendar, FileText, ArrowUpRight, ArrowDownRight, Pencil, Trash2, Tags, PieChart, BarChart3, LayoutDashboard } from 'lucide-react';
+import { Plus, RefreshCw, DollarSign, TrendingUp, TrendingDown, Calendar, FileText, ArrowUpRight, ArrowDownRight, Pencil, Trash2, Tags, PieChart, BarChart3, LayoutDashboard, CheckCircle } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -8,16 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO, isSameMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { accountPayableSchema, accountReceivableSchema, categorySchema } from '@/lib/validation/financial';
+import { categorySchema } from '@/lib/validation/financial';
 import { z } from 'zod';
 import { FinancialReports } from '@/components/financial/FinancialReports';
+import { AccountFormModal } from '@/components/financial/AccountFormModal';
+import { MarkAsPaidModal } from '@/components/financial/MarkAsPaidModal';
 
 interface AccountPayable {
   id: string;
@@ -89,19 +90,10 @@ export default function Financial() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [markAsPaidModalOpen, setMarkAsPaidModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'payable' | 'receivable'>('payable');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    description: '',
-    amount: '',
-    due_date: format(new Date(), 'yyyy-MM-dd'),
-    supplier: '',
-    customer: '',
-    payment_method: '',
-    category: '',
-    notes: '',
-    document_number: '',
-  });
+  const [editingItem, setEditingItem] = useState<AccountPayable | AccountReceivable | null>(null);
+  const [itemToPay, setItemToPay] = useState<AccountPayable | AccountReceivable | null>(null);
   const [categoryFormData, setCategoryFormData] = useState({
     name: '',
     type: 'expense' as 'expense' | 'income',
@@ -167,97 +159,7 @@ export default function Financial() {
     return [...new Set([...defaults, ...customCats])];
   };
 
-  const handleSubmit = async () => {
-    try {
-      const amountNum = parseFloat(formData.amount);
-      
-      if (modalType === 'payable') {
-        const validated = accountPayableSchema.parse({
-          description: formData.description,
-          amount: isNaN(amountNum) ? 0 : amountNum,
-          due_date: formData.due_date,
-          supplier: formData.supplier || null,
-          payment_method: formData.payment_method || null,
-          category: formData.category || null,
-          notes: formData.notes || null,
-          document_number: formData.document_number || null,
-        });
-
-        if (editingId) {
-          const { error } = await supabase.from('accounts_payable').update({
-            ...validated,
-          }).eq('id', editingId);
-
-          if (error) throw error;
-          toast.success('Conta a pagar atualizada!');
-        } else {
-          const { error } = await supabase.from('accounts_payable').insert({
-            description: validated.description,
-            amount: validated.amount,
-            due_date: validated.due_date,
-            supplier: validated.supplier,
-            payment_method: validated.payment_method,
-            category: validated.category,
-            notes: validated.notes,
-            document_number: validated.document_number,
-            status: 'pending',
-          });
-
-          if (error) throw error;
-          toast.success('Conta a pagar criada!');
-        }
-      } else {
-        const validated = accountReceivableSchema.parse({
-          description: formData.description,
-          amount: isNaN(amountNum) ? 0 : amountNum,
-          due_date: formData.due_date,
-          customer: formData.customer || null,
-          payment_method: formData.payment_method,
-          category: formData.category || null,
-          notes: formData.notes || null,
-          document_number: formData.document_number || null,
-        });
-
-        if (editingId) {
-          const { error } = await supabase.from('accounts_receivable').update({
-            ...validated,
-          }).eq('id', editingId);
-
-          if (error) throw error;
-          toast.success('Conta a receber atualizada!');
-        } else {
-          const { error } = await supabase.from('accounts_receivable').insert({
-            description: validated.description,
-            amount: validated.amount,
-            due_date: validated.due_date,
-            customer: validated.customer,
-            payment_method: validated.payment_method,
-            category: validated.category,
-            notes: validated.notes,
-            document_number: validated.document_number,
-            status: 'pending',
-          });
-
-          if (error) throw error;
-          toast.success('Conta a receber criada!');
-        }
-      }
-
-      setModalOpen(false);
-      setEditingId(null);
-      resetForm();
-      loadData();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        if (import.meta.env.DEV) {
-          console.error('Error saving entry:', error);
-        }
-        toast.error('Erro ao salvar registro');
-      }
-    }
-  };
+  // handleSubmit is now in AccountFormModal
 
   const handleSaveCategory = async () => {
     try {
@@ -292,18 +194,7 @@ export default function Financial() {
 
   const handleEdit = (item: AccountPayable | AccountReceivable, type: 'payable' | 'receivable') => {
     setModalType(type);
-    setEditingId(item.id);
-    setFormData({
-      description: item.description,
-      amount: String(item.amount),
-      due_date: item.due_date,
-      supplier: type === 'payable' ? (item as AccountPayable).supplier || '' : '',
-      customer: type === 'receivable' ? (item as AccountReceivable).customer || '' : '',
-      payment_method: item.payment_method || '',
-      category: item.category || '',
-      notes: item.notes || '',
-      document_number: item.document_number || '',
-    });
+    setEditingItem(item);
     setModalOpen(true);
   };
 
@@ -325,85 +216,15 @@ export default function Financial() {
     }
   };
 
-  const handleMarkAsPaid = async (id: string, type: 'payable' | 'receivable') => {
-    try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      
-      if (type === 'payable') {
-        const payable = payables.find(p => p.id === id);
-        const { error } = await supabase
-          .from('accounts_payable')
-          .update({ status: 'paid', paid_date: today })
-          .eq('id', id);
-        
-        if (error) throw error;
-
-        if (payable) {
-          await supabase.from('cash_flow').insert({
-            type: 'expense',
-            description: payable.description,
-            amount: payable.amount,
-            date: today,
-            category: payable.category,
-            payment_method: payable.payment_method,
-            reference_id: id,
-            reference_type: 'accounts_payable',
-          });
-        }
-
-        toast.success('Conta marcada como paga!');
-      } else {
-        const receivable = receivables.find(r => r.id === id);
-        const { error } = await supabase
-          .from('accounts_receivable')
-          .update({ status: 'received', received_date: today })
-          .eq('id', id);
-        
-        if (error) throw error;
-
-        if (receivable) {
-          await supabase.from('cash_flow').insert({
-            type: 'income',
-            description: receivable.description,
-            amount: receivable.amount,
-            date: today,
-            category: receivable.category,
-            payment_method: receivable.payment_method,
-            reference_id: id,
-            reference_type: 'accounts_receivable',
-          });
-        }
-
-        toast.success('Conta marcada como recebida!');
-      }
-
-      loadData();
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error updating entry:', error);
-      }
-      toast.error('Erro ao atualizar registro');
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      description: '',
-      amount: '',
-      due_date: format(new Date(), 'yyyy-MM-dd'),
-      supplier: '',
-      customer: '',
-      payment_method: '',
-      category: '',
-      notes: '',
-      document_number: '',
-    });
+  const handleOpenMarkAsPaidModal = (item: AccountPayable | AccountReceivable, type: 'payable' | 'receivable') => {
+    setModalType(type);
+    setItemToPay(item);
+    setMarkAsPaidModalOpen(true);
   };
 
   const openModal = (type: 'payable' | 'receivable') => {
     setModalType(type);
-    setEditingId(null);
-    resetForm();
+    setEditingItem(null);
     setModalOpen(true);
   };
 
@@ -736,7 +557,8 @@ export default function Financial() {
                             <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                           {(item.status === 'pending' || item.status === 'overdue') && (
-                            <Button size="sm" variant="outline" className="h-7 sm:h-8 text-xs" onClick={() => handleMarkAsPaid(item.id, 'payable')}>
+                            <Button size="sm" variant="outline" className="h-7 sm:h-8 text-xs gap-1" onClick={() => handleOpenMarkAsPaidModal(item, 'payable')}>
+                              <CheckCircle className="w-3 h-3" />
                               Pagar
                             </Button>
                           )}
@@ -794,7 +616,8 @@ export default function Financial() {
                             <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                           {(item.status === 'pending' || item.status === 'overdue') && (
-                            <Button size="sm" variant="outline" className="h-7 sm:h-8 text-xs" onClick={() => handleMarkAsPaid(item.id, 'receivable')}>
+                            <Button size="sm" variant="outline" className="h-7 sm:h-8 text-xs gap-1" onClick={() => handleOpenMarkAsPaidModal(item, 'receivable')}>
+                              <CheckCircle className="w-3 h-3" />
                               Receber
                             </Button>
                           )}
@@ -962,131 +785,24 @@ export default function Financial() {
         </TabsContent>
       </Tabs>
 
-      {/* Modal for new/edit entry */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingId ? 'Editar' : 'Nova'} {modalType === 'payable' ? 'Conta a Pagar' : 'Conta a Receber'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="description">Descrição *</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Ex: Compra de produtos"
-              />
-            </div>
+      {/* Account Form Modal */}
+      <AccountFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        type={modalType}
+        editingItem={editingItem}
+        customCategories={customCategories}
+        onSuccess={loadData}
+      />
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="amount">Valor *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="due_date">Vencimento *</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="party">{modalType === 'payable' ? 'Fornecedor' : 'Cliente'}</Label>
-              <Input
-                id="party"
-                value={modalType === 'payable' ? formData.supplier : formData.customer}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  [modalType === 'payable' ? 'supplier' : 'customer']: e.target.value 
-                })}
-                placeholder={modalType === 'payable' ? 'Nome do fornecedor' : 'Nome do cliente'}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="category">Categoria</Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getCategories(modalType).map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="payment_method">
-                  Forma de Pagamento {modalType === 'receivable' && '*'}
-                </Label>
-                <Select 
-                  value={formData.payment_method} 
-                  onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_METHODS.map((method) => (
-                      <SelectItem key={method} value={method}>{method}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="document_number">Número do Documento</Label>
-              <Input
-                id="document_number"
-                value={formData.document_number}
-                onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
-                placeholder="Ex: NF-001"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Observações</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Observações adicionais..."
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit}>
-              {editingId ? 'Salvar' : 'Criar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Mark as Paid Modal */}
+      <MarkAsPaidModal
+        open={markAsPaidModalOpen}
+        onOpenChange={setMarkAsPaidModalOpen}
+        type={modalType}
+        item={itemToPay}
+        onSuccess={loadData}
+      />
 
       {/* Category Modal */}
       <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
