@@ -28,7 +28,7 @@ export const accountReceivableSchema = z.object({
   due_date: z.string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
   customer: z.string().max(255).optional().nullable(),
-  payment_method: z.string().min(1, 'Forma de pagamento é obrigatória').max(100),
+  payment_method: z.string().max(100).optional().nullable(),
   category: z.string().max(100).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   document_number: z.string().max(100).optional().nullable(),

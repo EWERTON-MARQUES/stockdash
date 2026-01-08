@@ -210,13 +210,19 @@ export function AccountFormModal({
           toast.success('Conta a pagar criada!');
         }
       } else {
-        // For receivables, payment_method is always required
+        // Validate payment method is required when status is received
+        if (isPaidStatus && !formData.payment_method) {
+          toast.error('Forma de pagamento é obrigatória quando status é Recebido');
+          setSaving(false);
+          return;
+        }
+
         const validated = accountReceivableSchema.parse({
           description: formData.description,
           amount: isNaN(amountNum) ? 0 : amountNum,
           due_date: formData.due_date,
           customer: formData.customer || null,
-          payment_method: formData.payment_method,
+          payment_method: isPaidStatus ? formData.payment_method : (formData.payment_method || null),
           category: formData.category || null,
           notes: formData.notes || null,
           document_number: formData.document_number || null,
@@ -376,7 +382,7 @@ export function AccountFormModal({
           {/* Row 4: Payment Method */}
           <div className="space-y-2">
             <Label htmlFor="payment_method" className="text-sm font-medium">
-              Forma de Pagamento {(type === 'receivable' || isPaidStatus) && <span className="text-destructive">*</span>}
+              Forma de Pagamento {isPaidStatus && <span className="text-destructive">*</span>}
             </Label>
             <Select 
               value={formData.payment_method} 
