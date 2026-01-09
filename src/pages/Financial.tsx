@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Plus, RefreshCw, DollarSign, TrendingUp, TrendingDown, Calendar, FileText, ArrowUpRight, ArrowDownRight, Pencil, Trash2, Tags, PieChart, BarChart3, LayoutDashboard, CheckCircle } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { FinancialReports } from '@/components/financial/FinancialReports';
 import { AccountFormModal } from '@/components/financial/AccountFormModal';
 import { MarkAsPaidModal } from '@/components/financial/MarkAsPaidModal';
+import { AccountFilters, AccountFiltersState } from '@/components/financial/AccountFilters';
 
 interface AccountPayable {
   id: string;
@@ -99,6 +100,25 @@ export default function Financial() {
     type: 'expense' as 'expense' | 'income',
     description: '',
   });
+  
+  const [payableFilters, setPayableFilters] = useState<AccountFiltersState>({
+    status: 'all', dateFrom: undefined, dateTo: undefined,
+  });
+  const [receivableFilters, setReceivableFilters] = useState<AccountFiltersState>({
+    status: 'all', dateFrom: undefined, dateTo: undefined,
+  });
+
+  const applyFilters = (items: any[], filters: AccountFiltersState) => {
+    return items.filter(item => {
+      if (filters.status !== 'all' && item.status !== filters.status) return false;
+      if (filters.dateFrom && isBefore(parseISO(item.due_date), filters.dateFrom)) return false;
+      if (filters.dateTo && isAfter(parseISO(item.due_date), filters.dateTo)) return false;
+      return true;
+    });
+  };
+
+  const filteredPayables = useMemo(() => applyFilters(payables, payableFilters), [payables, payableFilters]);
+  const filteredReceivables = useMemo(() => applyFilters(receivables, receivableFilters), [receivables, receivableFilters]);
 
   const loadData = async () => {
     setLoading(true);
