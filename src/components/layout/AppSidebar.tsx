@@ -1,12 +1,20 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Box, Menu, X, TrendingUp, DollarSign, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Box, Menu, X, TrendingUp, DollarSign, LogOut, ChevronDown, User, Building2, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-const menuItems = [
+interface MenuItem {
+  icon: React.ElementType;
+  label: string;
+  path?: string;
+  submenu?: { icon: React.ElementType; label: string; path: string }[];
+}
+
+const menuItems: MenuItem[] = [
   {
     icon: LayoutDashboard,
     label: 'Dashboard',
@@ -25,7 +33,11 @@ const menuItems = [
   {
     icon: DollarSign,
     label: 'Financeiro',
-    path: '/financeiro'
+    submenu: [
+      { icon: Wallet, label: 'Geral', path: '/financeiro' },
+      { icon: User, label: 'Carteira PF', path: '/financeiro/pf' },
+      { icon: Building2, label: 'Carteira PJ', path: '/financeiro/pj' },
+    ]
   },
   {
     icon: ShoppingCart,
@@ -49,6 +61,9 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [financialOpen, setFinancialOpen] = useState(
+    location.pathname.startsWith('/financeiro')
+  );
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -79,11 +94,64 @@ export function AppSidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-1">
         {menuItems.map(item => {
-          const isActive = location.pathname === item.path;
+          // Check if this item or any submenu item is active
+          const isActive = item.path 
+            ? location.pathname === item.path 
+            : item.submenu?.some(sub => location.pathname === sub.path);
+          
+          // For items with submenu
+          if (item.submenu) {
+            return (
+              <Collapsible 
+                key={item.label} 
+                open={financialOpen} 
+                onOpenChange={setFinancialOpen}
+              >
+                <CollapsibleTrigger asChild>
+                  <button 
+                    className={cn(
+                      'sidebar-item w-full justify-between',
+                      isActive && 'sidebar-item-active'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5 text-white" />
+                      <span className="font-medium text-primary-foreground">{item.label}</span>
+                    </div>
+                    <ChevronDown className={cn(
+                      'w-4 h-4 text-white/70 transition-transform duration-200',
+                      financialOpen && 'rotate-180'
+                    )} />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                  {item.submenu.map(subItem => {
+                    const subIsActive = location.pathname === subItem.path;
+                    return (
+                      <NavLink
+                        key={subItem.path}
+                        to={subItem.path}
+                        onClick={() => setMobileOpen(false)}
+                        className={cn(
+                          'sidebar-item text-sm py-2',
+                          subIsActive && 'sidebar-item-active'
+                        )}
+                      >
+                        <subItem.icon className="w-4 h-4 text-white" />
+                        <span className="font-medium text-primary-foreground">{subItem.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          }
+
+          // For items without submenu
           return (
             <NavLink 
               key={item.path} 
-              to={item.path} 
+              to={item.path!} 
               onClick={() => setMobileOpen(false)} 
               className={cn('sidebar-item', isActive && 'sidebar-item-active')}
             >

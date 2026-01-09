@@ -14,6 +14,8 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import ABCCurve from "./pages/ABCCurve";
 import Financial from "./pages/Financial";
+import WalletPF from "./pages/WalletPF";
+import WalletPJ from "./pages/WalletPJ";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
             <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/curva-abc" element={<ProtectedRoute><ABCCurve /></ProtectedRoute>} />
             <Route path="/financeiro" element={<ProtectedRoute><Financial /></ProtectedRoute>} />
+            <Route path="/financeiro/pf" element={<ProtectedRoute><WalletPF /></ProtectedRoute>} />
+            <Route path="/financeiro/pj" element={<ProtectedRoute><WalletPJ /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
