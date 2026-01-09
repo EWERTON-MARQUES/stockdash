@@ -203,6 +203,20 @@ export default function Financial() {
 
     try {
       const table = type === 'payable' ? 'accounts_payable' : 'accounts_receivable';
+      const refType = type === 'payable' ? 'accounts_payable' : 'accounts_receivable';
+      
+      // First, delete related cash_flow entries
+      const { error: cashFlowError } = await supabase
+        .from('cash_flow')
+        .delete()
+        .eq('reference_id', id)
+        .eq('reference_type', refType);
+      
+      if (cashFlowError) {
+        console.error('Error deleting related cash flow:', cashFlowError);
+      }
+      
+      // Then delete the account itself
       const { error } = await supabase.from(table).delete().eq('id', id);
       
       if (error) throw error;

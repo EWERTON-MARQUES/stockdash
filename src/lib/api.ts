@@ -627,15 +627,22 @@ class ApiService {
     try {
       const allProducts: Product[] = [];
       let page = 1;
-      const limit = 100;
+      const limit = 500; // Larger batch size for efficiency
       let hasMore = true;
+      let totalFromApi = 0;
       
-      // Fetch all pages
-      while (hasMore && page <= 50) { // Max 50 pages (5000 products)
+      // Fetch all pages without artificial limit
+      while (hasMore) {
         const result = await this.getProducts(page, limit);
         allProducts.push(...result.products);
         
-        if (result.products.length < limit || allProducts.length >= result.total) {
+        // Get total from first request
+        if (page === 1) {
+          totalFromApi = result.total;
+        }
+        
+        // Stop when we've fetched all products
+        if (result.products.length < limit || allProducts.length >= totalFromApi) {
           hasMore = false;
         } else {
           page++;
