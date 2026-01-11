@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Package, Boxes, AlertTriangle, XCircle, DollarSign, Layers, RefreshCw, TrendingUp, TrendingDown, ArrowRight, BarChart3 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { StatCard } from '@/components/ui/stat-card';
@@ -120,49 +121,75 @@ export default function Dashboard() {
       </PageHeader>
 
       {/* Stats Grid */}
-      <div className="grid gap-3 sm:gap-4 mb-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+      <motion.div 
+        className="grid gap-3 sm:gap-4 mb-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+        initial="initial"
+        animate="animate"
+        variants={{
+          initial: {},
+          animate: {
+            transition: {
+              staggerChildren: 0.05,
+            }
+          }
+        }}
+      >
         <StatCard
           title="Total de Produtos"
           value={formatNumber(stats?.totalProducts || 0)}
           icon={Package}
           iconClassName="bg-primary/10 text-primary"
+          delay={0}
         />
         <StatCard
           title="Estoque Ativo"
           value={formatNumber(stats?.totalStock || 0)}
           icon={Boxes}
           iconClassName="bg-success/10 text-success"
+          delay={0.05}
         />
         <StatCard
           title="Estoque Baixo"
           value={formatNumber(stats?.lowStockProducts || 0)}
           icon={AlertTriangle}
           iconClassName="bg-warning/10 text-warning"
+          delay={0.1}
         />
         <StatCard
           title="Sem Estoque"
           value={formatNumber(stats?.outOfStockProducts || 0)}
           icon={XCircle}
           iconClassName="bg-destructive/10 text-destructive"
+          delay={0.15}
         />
         <StatCard
           title="Custo em Estoque"
           value={formatCurrency(stats?.totalValue || 0)}
           icon={DollarSign}
           iconClassName="bg-chart-1/10 text-chart-1"
+          delay={0.2}
         />
         <StatCard
           title="Categorias"
           value={formatNumber(categoryData.length || 0)}
           icon={Layers}
           iconClassName="bg-chart-2/10 text-chart-2"
+          delay={0.25}
         />
-      </div>
+      </motion.div>
 
       {/* Charts Row */}
-      <div className="grid gap-4 sm:gap-6 mb-6 lg:grid-cols-2">
+      <motion.div 
+        className="grid gap-4 sm:gap-6 mb-6 lg:grid-cols-2"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.4 }}
+      >
         {/* Stock Trend Chart */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+        <motion.div 
+          className="bg-card rounded-xl border border-border/50 p-4 sm:p-5 shadow-md hover:shadow-xl hover:border-primary/30 transition-all duration-300 group"
+          whileHover={{ y: -2 }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
               <TrendingUp className="w-4 h-4 text-primary" />
@@ -205,10 +232,13 @@ export default function Dashboard() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
         {/* Top Products Chart */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+        <motion.div 
+          className="bg-card rounded-xl border border-border/50 p-4 sm:p-5 shadow-md hover:shadow-xl hover:border-primary/30 transition-all duration-300 group"
+          whileHover={{ y: -2 }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
               <BarChart3 className="w-4 h-4 text-success" />
@@ -235,17 +265,25 @@ export default function Dashboard() {
                   }}
                   formatter={(value: number) => [formatNumber(value), 'Vendas']}
                 />
-                <Bar dataKey="sales" fill="hsl(var(--success))" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="sales" fill="hsl(var(--success))" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Second Charts Row */}
-      <div className="grid gap-4 sm:gap-6 mb-6 lg:grid-cols-2">
+      <motion.div 
+        className="grid gap-4 sm:gap-6 mb-6 lg:grid-cols-2"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.4 }}
+      >
         {/* Value Trend Chart */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+        <motion.div 
+          className="bg-card rounded-xl border border-border/50 p-4 sm:p-5 shadow-md hover:shadow-xl hover:border-primary/30 transition-all duration-300"
+          whileHover={{ y: -2 }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
               <DollarSign className="w-4 h-4 text-warning" />
@@ -288,10 +326,13 @@ export default function Dashboard() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
         {/* Category Distribution */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+        <motion.div 
+          className="bg-card rounded-xl border border-border/50 p-4 sm:p-5 shadow-md hover:shadow-xl hover:border-primary/30 transition-all duration-300"
+          whileHover={{ y: -2 }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
               <Package className="w-4 h-4 text-chart-1" />
@@ -337,11 +378,16 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Products with Latest Movements */}
-      <div className="bg-card rounded-xl border border-border shadow-sm animate-fade-in">
+      <motion.div 
+        className="bg-card rounded-xl border border-border/50 shadow-md hover:shadow-xl transition-all duration-300"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.4 }}
+      >
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border">
           <div>
             <h2 className="font-semibold text-foreground text-sm sm:text-base">Produtos com Últimas Movimentações</h2>
@@ -476,7 +522,7 @@ export default function Dashboard() {
             <p className="text-muted-foreground">Nenhuma movimentação recente</p>
           </div>
         )}
-      </div>
+      </motion.div>
     </MainLayout>
   );
 }
