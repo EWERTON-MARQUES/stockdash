@@ -86,7 +86,7 @@ export function AppSidebar() {
           <Box className="w-6 h-6 text-sidebar-primary-foreground" />
         </div>
         <div className="flex flex-col">
-          <span className="text-lg font-semibold text-primary-foreground">StockPro</span>
+          <span className="text-lg font-semibold text-sidebar-foreground">StockPro</span>
           <span className="text-xs text-sidebar-muted">Gestão de Estoque</span>
         </div>
       </div>
@@ -115,11 +115,11 @@ export function AppSidebar() {
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <item.icon className="w-5 h-5 text-white" />
-                      <span className="font-medium text-primary-foreground">{item.label}</span>
+                      <item.icon className="w-5 h-5 text-sidebar-foreground" />
+                      <span className="font-medium text-sidebar-foreground">{item.label}</span>
                     </div>
                     <ChevronDown className={cn(
-                      'w-4 h-4 text-white/70 transition-transform duration-200',
+                      'w-4 h-4 text-sidebar-muted transition-transform duration-200',
                       financialOpen && 'rotate-180'
                     )} />
                   </button>
@@ -137,8 +137,8 @@ export function AppSidebar() {
                           subIsActive && 'sidebar-item-active'
                         )}
                       >
-                        <subItem.icon className="w-4 h-4 text-white" />
-                        <span className="font-medium text-primary-foreground">{subItem.label}</span>
+                        <subItem.icon className="w-4 h-4 text-sidebar-foreground" />
+                        <span className="font-medium text-sidebar-foreground">{subItem.label}</span>
                       </NavLink>
                     );
                   })}
@@ -155,8 +155,8 @@ export function AppSidebar() {
               onClick={() => setMobileOpen(false)} 
               className={cn('sidebar-item', isActive && 'sidebar-item-active')}
             >
-              <item.icon className="w-5 h-5 text-white" />
-              <span className="font-medium text-primary-foreground">{item.label}</span>
+              <item.icon className="w-5 h-5 text-sidebar-foreground" />
+              <span className="font-medium text-sidebar-foreground">{item.label}</span>
             </NavLink>
           );
         })}
@@ -165,12 +165,12 @@ export function AppSidebar() {
       {/* Footer */}
       <div className="px-4 py-4 border-t border-sidebar-border space-y-3">
         <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-white">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-sidebar-accent">
             <span className="text-sm font-medium text-sidebar-foreground">A</span>
           </div>
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-sm font-medium text-white truncate">Admin</span>
-            <span className="text-xs text-white/70 truncate">Sessão: 10 min</span>
+            <span className="text-sm font-medium text-sidebar-foreground truncate">Admin</span>
+            <span className="text-xs text-sidebar-muted truncate">Sessão: 10 min</span>
           </div>
         </div>
         <Button
@@ -178,7 +178,7 @@ export function AppSidebar() {
           size="sm"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full gap-2 bg-destructive/10 border-destructive/30 text-white hover:bg-destructive/20 hover:text-white"
+          className="w-full gap-2 bg-destructive/10 border-destructive/30 text-sidebar-foreground hover:bg-destructive/20 hover:text-sidebar-foreground"
         >
           <LogOut className="w-4 h-4" />
           {loggingOut ? 'Saindo...' : 'Sair do Sistema'}
