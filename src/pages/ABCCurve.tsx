@@ -37,68 +37,88 @@ export default function ABCCurve() {
   });
 
   const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Fetch all products to calculate ABC curve
-      const allProducts = await apiService.getAllProductsForStats();
-      
-      // Get ABC classes from API (uses cache)
-      const abcMap = await apiService.calculateABCCurve();
-
-      // Calculate sales score for sorting and display
-      const productsWithScore = allProducts.map(p => {
-        const salesScore = 
-          (p.avgSellsQuantityPast30Days ?? 0) * 30 +
-          (p.avgSellsQuantityPast15Days ?? 0) * 20 +
-          (p.avgSellsQuantityPast7Days ?? 0) * 10 +
-          (p.soldQuantity ?? 0);
-        return { ...p, salesScore };
-      });
-
-      // Sort by sales score descending
-      productsWithScore.sort((a, b) => b.salesScore - a.salesScore);
-
-      // Calculate total sales score
-      const totalScore = productsWithScore.reduce((acc, p) => acc + p.salesScore, 0);
-
-      // Calculate cumulative percentage and assign ABC class from cache
-      let cumulative = 0;
-      const classifiedProducts: ABCProduct[] = productsWithScore.map(p => {
-        cumulative += p.salesScore;
-        const cumulativePercentage = totalScore > 0 ? (cumulative / totalScore) * 100 : 0;
-        const curveClass = abcMap.get(p.id) || 'C';
-
-        return {
-          ...p,
-          curveClass,
-          cumulativePercentage,
-          salesScore: p.salesScore,
-        };
-      });
-
-      // Calculate stats
-      const aProducts = classifiedProducts.filter(p => p.curveClass === 'A');
-      const bProducts = classifiedProducts.filter(p => p.curveClass === 'B');
-      const cProducts = classifiedProducts.filter(p => p.curveClass === 'C');
-
-      const totalProducts = classifiedProducts.length;
-
-      setStats({
-        totalA: aProducts.length,
-        totalB: bProducts.length,
-        totalC: cProducts.length,
-        percentA: totalProducts > 0 ? Math.round((aProducts.length / totalProducts) * 100) : 0,
-        percentB: totalProducts > 0 ? Math.round((bProducts.length / totalProducts) * 100) : 0,
-        percentC: totalProducts > 0 ? Math.round((cProducts.length / totalProducts) * 100) : 0,
-        valueA: aProducts.reduce((a, p) => a + (p.price * p.stock), 0),
-        valueB: bProducts.reduce((a, p) => a + (p.price * p.stock), 0),
-        valueC: cProducts.reduce((a, p) => a + (p.price * p.stock), 0),
-      });
-
-      setProducts(classifiedProducts);
-    } finally {
+    // Check if cached data is available for instant display
+    const cachedProducts = apiService.getCachedProducts();
+    const cachedABC = apiService.getCachedABCMap();
+    
+    if (cachedProducts && cachedABC && cachedProducts.length > 0) {
+      // Use cached data immediately
+      processProducts(cachedProducts, cachedABC);
       setLoading(false);
+      
+      // Refresh in background
+      apiService.getAllProductsForStats().then(freshProducts => {
+        apiService.calculateABCCurve().then(freshABC => {
+          processProducts(freshProducts, freshABC);
+        });
+      });
+    } else {
+      // No cache, load from API
+      setLoading(true);
+      try {
+        const [allProducts, abcMap] = await Promise.all([
+          apiService.getAllProductsForStats(),
+          apiService.calculateABCCurve(),
+        ]);
+        processProducts(allProducts, abcMap);
+      } finally {
+        setLoading(false);
+      }
     }
+  }, []);
+
+  const processProducts = useCallback((allProducts: Product[], abcMap: Map<string, 'A' | 'B' | 'C'>) => {
+    // Calculate sales score for sorting and display
+    const productsWithScore = allProducts.map(p => {
+      const salesScore = 
+        (p.avgSellsQuantityPast30Days ?? 0) * 30 +
+        (p.avgSellsQuantityPast15Days ?? 0) * 20 +
+        (p.avgSellsQuantityPast7Days ?? 0) * 10 +
+        (p.soldQuantity ?? 0);
+      return { ...p, salesScore };
+    });
+
+    // Sort by sales score descending
+    productsWithScore.sort((a, b) => b.salesScore - a.salesScore);
+
+    // Calculate total sales score
+    const totalScore = productsWithScore.reduce((acc, p) => acc + p.salesScore, 0);
+
+    // Calculate cumulative percentage and assign ABC class from cache
+    let cumulative = 0;
+    const classifiedProducts: ABCProduct[] = productsWithScore.map(p => {
+      cumulative += p.salesScore;
+      const cumulativePercentage = totalScore > 0 ? (cumulative / totalScore) * 100 : 0;
+      const curveClass = abcMap.get(p.id) || 'C';
+
+      return {
+        ...p,
+        curveClass,
+        cumulativePercentage,
+        salesScore: p.salesScore,
+      };
+    });
+
+    // Calculate stats
+    const aProducts = classifiedProducts.filter(p => p.curveClass === 'A');
+    const bProducts = classifiedProducts.filter(p => p.curveClass === 'B');
+    const cProducts = classifiedProducts.filter(p => p.curveClass === 'C');
+
+    const totalProducts = classifiedProducts.length;
+
+    setStats({
+      totalA: aProducts.length,
+      totalB: bProducts.length,
+      totalC: cProducts.length,
+      percentA: totalProducts > 0 ? Math.round((aProducts.length / totalProducts) * 100) : 0,
+      percentB: totalProducts > 0 ? Math.round((bProducts.length / totalProducts) * 100) : 0,
+      percentC: totalProducts > 0 ? Math.round((cProducts.length / totalProducts) * 100) : 0,
+      valueA: aProducts.reduce((a, p) => a + (p.price * p.stock), 0),
+      valueB: bProducts.reduce((a, p) => a + (p.price * p.stock), 0),
+      valueC: cProducts.reduce((a, p) => a + (p.price * p.stock), 0),
+    });
+
+    setProducts(classifiedProducts);
   }, []);
 
   useEffect(() => {

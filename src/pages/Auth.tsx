@@ -135,9 +135,9 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
         
         {/* Grid pattern */}
         <div 
@@ -154,7 +154,7 @@ export default function Auth() {
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-blue-400/30 rounded-full animate-pulse"
+            className="absolute w-1 h-1 bg-red-400/30 rounded-full animate-pulse"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -168,24 +168,24 @@ export default function Auth() {
       {/* Login card */}
       <div className="relative z-10 w-full max-w-md mx-4">
         {/* Glow effect behind card */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-cyan-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-70" />
+        <div className="absolute -inset-1 bg-gradient-to-r from-red-500/20 via-rose-500/20 to-red-500/20 rounded-2xl blur-xl opacity-70" />
         
         <div className="relative bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 mb-4 shadow-lg shadow-blue-500/25">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-rose-500 mb-4 shadow-lg shadow-red-500/25">
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
               StockPro
-              <Sparkles className="w-5 h-5 text-cyan-400" />
+              <Sparkles className="w-5 h-5 text-red-400" />
             </h1>
             <p className="text-slate-400 text-sm">Sistema de Gestão Avançado</p>
           </div>
 
           {/* Security badge */}
           <div className="flex items-center justify-center gap-2 mb-6 py-2 px-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
             <span className="text-xs text-slate-400">Conexão Segura • SSL/TLS</span>
           </div>
 
@@ -219,7 +219,7 @@ export default function Auth() {
                   required
                   disabled={isLocked}
                   autoComplete="email"
-                  className="pl-11 h-12 bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200 disabled:opacity-50"
+                  className="pl-11 h-12 bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-red-500/50 focus:ring-red-500/20 transition-all duration-200 disabled:opacity-50"
                 />
               </div>
             </div>
@@ -239,14 +239,14 @@ export default function Auth() {
                   required
                   disabled={isLocked}
                   autoComplete="current-password"
-                  className="pl-11 h-12 bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200 disabled:opacity-50"
+                  className="pl-11 h-12 bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-red-500/50 focus:ring-red-500/20 transition-all duration-200 disabled:opacity-50"
                 />
               </div>
             </div>
 
             <Button 
               type="submit" 
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
+              className="w-full h-12 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold rounded-xl shadow-lg shadow-red-500/25 transition-all duration-300 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
               disabled={loading || isLocked}
             >
               {loading ? (
@@ -284,7 +284,7 @@ export default function Auth() {
         </div>
 
         {/* Bottom decoration */}
-        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent rounded-full blur-sm" />
+        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent rounded-full blur-sm" />
       </div>
     </div>
   );

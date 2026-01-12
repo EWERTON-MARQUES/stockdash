@@ -52,6 +52,8 @@ class ApiService {
   private initPromise: Promise<void> | null = null;
   private abcCache: Map<string, 'A' | 'B' | 'C'> | null = null;
   private abcCacheTime: number = 0;
+  private preloadPromise: Promise<void> | null = null;
+  private preloadComplete: boolean = false;
 
   constructor() {
     // Auto-initialize config on service creation
@@ -1020,12 +1022,56 @@ class ApiService {
   async preloadData(): Promise<void> {
     if (!this.isReady()) return;
     
-    // Load all products and calculate ABC in parallel
-    await Promise.all([
-      this.getAllProductsForStats(),
-      this.calculateABCCurve(),
-      this.loadAllFilters(),
-    ]);
+    // If already preloading, wait for it
+    if (this.preloadPromise) {
+      return this.preloadPromise;
+    }
+    
+    // If already preloaded and cache is still valid, skip
+    if (this.preloadComplete && this.allProductsCache && 
+        (Date.now() - this.allProductsCacheTime) < this.CACHE_DURATION) {
+      return;
+    }
+    
+    this.preloadPromise = (async () => {
+      try {
+        // Load all products and calculate ABC in parallel
+        await Promise.all([
+          this.getAllProductsForStats(),
+          this.calculateABCCurve(),
+          this.loadAllFilters(),
+        ]);
+        this.preloadComplete = true;
+      } finally {
+        this.preloadPromise = null;
+      }
+    })();
+    
+    return this.preloadPromise;
+  }
+
+  // Check if data is preloaded
+  isDataPreloaded(): boolean {
+    return this.preloadComplete && !!this.allProductsCache;
+  }
+
+  // Get cached products immediately (if available)
+  getCachedProducts(): Product[] | null {
+    return this.allProductsCache;
+  }
+
+  // Get cached ABC map immediately (if available)
+  getCachedABCMap(): Map<string, 'A' | 'B' | 'C'> | null {
+    return this.abcCache;
+  }
+
+  // Force invalidate cache (useful for manual refresh)
+  invalidateCache(): void {
+    this.allProductsCache = null;
+    this.allProductsCacheTime = 0;
+    this.abcCache = null;
+    this.abcCacheTime = 0;
+    this.preloadComplete = false;
   }
 }
 
