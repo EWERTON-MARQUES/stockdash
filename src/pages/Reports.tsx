@@ -52,38 +52,68 @@ export default function Reports() {
   const [periodFilter, setPeriodFilter] = useState<string>('7');
 
   const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Fetch total from API first
-      const stats = await apiService.getDashboardStats();
-      setTotalProductsFromApi(stats.totalProducts);
+    // Check if cached data is available for instant display
+    const cachedProducts = apiService.getCachedProducts();
+    
+    if (cachedProducts && cachedProducts.length > 0) {
+      // Use cached data immediately
+      setProducts(cachedProducts);
+      setTotalProductsFromApi(cachedProducts.length);
+      setLoading(false);
       
-      const [allProducts, cats, supps] = await Promise.all([
-        apiService.getAllProductsForStats(),
+      // Load categories, suppliers and snapshots in background
+      Promise.all([
         apiService.getCategories(),
         apiService.getSuppliers(),
-      ]);
+        loadSnapshots(),
+      ]).then(([cats, supps]) => {
+        setCategories(cats);
+        setSuppliers(supps);
+        setLastUpdate(new Date());
+      });
       
-      setProducts(allProducts);
-      setCategories(cats);
-      setSuppliers(supps);
-      
-      // Load historical snapshots
-      const daysAgo = new Date();
-      daysAgo.setDate(daysAgo.getDate() - parseInt(periodFilter));
-      
-      const { data: snapshotData } = await supabase
-        .from('daily_stock_snapshots')
-        .select('*')
-        .gte('date', daysAgo.toISOString().split('T')[0])
-        .order('date', { ascending: true });
-      
-      setSnapshots(snapshotData || []);
-      setLastUpdate(new Date());
-    } finally {
-      setLoading(false);
+      // Refresh products in background
+      apiService.getAllProductsForStats().then(freshProducts => {
+        setProducts(freshProducts);
+        setTotalProductsFromApi(freshProducts.length);
+      });
+    } else {
+      // No cache, load from API
+      setLoading(true);
+      try {
+        const stats = await apiService.getDashboardStats();
+        setTotalProductsFromApi(stats.totalProducts);
+        
+        const [allProducts, cats, supps] = await Promise.all([
+          apiService.getAllProductsForStats(),
+          apiService.getCategories(),
+          apiService.getSuppliers(),
+        ]);
+        
+        setProducts(allProducts);
+        setCategories(cats);
+        setSuppliers(supps);
+        
+        await loadSnapshots();
+        setLastUpdate(new Date());
+      } finally {
+        setLoading(false);
+      }
     }
   }, [periodFilter]);
+
+  const loadSnapshots = async () => {
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(periodFilter));
+    
+    const { data: snapshotData } = await supabase
+      .from('daily_stock_snapshots')
+      .select('*')
+      .gte('date', daysAgo.toISOString().split('T')[0])
+      .order('date', { ascending: true });
+    
+    setSnapshots(snapshotData || []);
+  };
 
   useEffect(() => {
     loadData();

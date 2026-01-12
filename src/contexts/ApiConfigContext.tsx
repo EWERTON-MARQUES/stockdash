@@ -36,8 +36,9 @@ export function ApiConfigProvider({ children }: ApiConfigProviderProps) {
       const loadedConfig = await apiService.getConfigAsync();
       setConfig(loadedConfig);
       
-      // Preload data in background for faster experience
+      // Preload data immediately in background for faster experience
       if (loadedConfig?.baseUrl && loadedConfig?.token) {
+        // Start preload without awaiting - let it run in background
         apiService.preloadData().catch(() => {
           // Silently ignore preload errors
         });

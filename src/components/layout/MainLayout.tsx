@@ -1,13 +1,20 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { AppSidebar } from './AppSidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PageTransition } from './PageTransition';
+import { useDataRefresh } from '@/hooks/useDataRefresh';
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
+  // Start automatic data refresh for ABC Curve and Reports
+  useDataRefresh({
+    refreshInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    refreshOnMount: true,
+    refreshOnFocus: true,
+  });
   return (
     <div className="min-h-screen bg-background futuristic-grid">
       <AppSidebar />
