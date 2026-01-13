@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Key, Globe, CheckCircle2, XCircle, Loader2, TestTube } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Key, Globe, CheckCircle2, XCircle, Loader2, TestTube, Sun, Moon, Monitor } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiService } from '@/lib/api';
 import { toast } from 'sonner';
+import { useTheme } from '@/components/ThemeProvider';
 
 export default function Settings() {
+  const { theme, setTheme } = useTheme();
   const [baseUrl, setBaseUrl] = useState('');
   const [token, setToken] = useState('');
   const [isSaved, setIsSaved] = useState(false);
@@ -114,10 +116,61 @@ export default function Settings() {
     <MainLayout>
       <PageHeader
         title="Configurações"
-        description="Configure a conexão com a API externa"
+        description="Configure a conexão com a API externa e aparência"
       />
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Theme Settings Card */}
+        <div className="bg-card rounded-xl border border-border shadow-sm p-4 sm:p-6 animate-fade-in">
+          <div className="flex items-start sm:items-center gap-3 mb-4 sm:mb-6">
+            <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 shrink-0">
+              {theme === 'dark' ? (
+                <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              ) : theme === 'light' ? (
+                <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              ) : (
+                <Monitor className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground">
+                Aparência
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Escolha o tema de exibição do sistema
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <Button
+              variant={theme === 'light' ? 'default' : 'outline'}
+              className="flex flex-col items-center gap-2 h-auto py-4"
+              onClick={() => setTheme('light')}
+            >
+              <Sun className="w-5 h-5" />
+              <span className="text-xs">Claro</span>
+            </Button>
+            <Button
+              variant={theme === 'dark' ? 'default' : 'outline'}
+              className="flex flex-col items-center gap-2 h-auto py-4"
+              onClick={() => setTheme('dark')}
+            >
+              <Moon className="w-5 h-5" />
+              <span className="text-xs">Escuro</span>
+            </Button>
+            <Button
+              variant={theme === 'system' ? 'default' : 'outline'}
+              className="flex flex-col items-center gap-2 h-auto py-4"
+              onClick={() => setTheme('system')}
+            >
+              <Monitor className="w-5 h-5" />
+              <span className="text-xs">Sistema</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* API Settings Card */}
         <div className="bg-card rounded-xl border border-border shadow-sm p-4 sm:p-6 animate-fade-in">
           <div className="flex items-start sm:items-center gap-3 mb-4 sm:mb-6">
             <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 shrink-0">
