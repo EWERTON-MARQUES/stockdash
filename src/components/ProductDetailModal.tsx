@@ -37,20 +37,31 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
   const [imageEdited, setImageEdited] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [abcClass, setAbcClass] = useState<'A' | 'B' | 'C'>('C');
+  const [fullProduct, setFullProduct] = useState<Product | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
     if (product && open) {
       setLoadingMovements(true);
+      setLoadingDetails(true);
       setSelectedImage(0);
+      setFullProduct(null);
       
-      // Load movements and ABC class in parallel
+      // Load full product details, movements and ABC class in parallel
       Promise.all([
+        apiService.getProductDetail(product.id),
         apiService.getProductMovements(product.id),
         apiService.getProductABCClass(product.id)
-      ]).then(([movs, abc]) => {
+      ]).then(([fullProd, movs, abc]) => {
+        if (fullProd) {
+          setFullProduct(fullProd);
+        }
         setMovements(movs);
         setAbcClass(abc);
-      }).finally(() => setLoadingMovements(false));
+      }).finally(() => {
+        setLoadingMovements(false);
+        setLoadingDetails(false);
+      });
       
       // Load marketplace and image edited data
       supabase.from('product_marketplaces').select('*').eq('product_id', product.id).maybeSingle()
@@ -514,33 +525,46 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
             </div>
 
             {/* Description Section - Full Width */}
-            {product.description && (
-              <div className="mt-6 bg-card rounded-xl border border-border p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary" />
-                    Descrição do Produto
-                  </h3>
+            <div className="mt-6 bg-card rounded-xl border border-border p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  Descrição do Produto
+                </h3>
+                {(fullProduct?.description || product.description) && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="gap-2 h-7 sm:h-8 text-xs"
                     onClick={() => {
-                      navigator.clipboard.writeText(product.description);
+                      const desc = fullProduct?.description || product.description;
+                      navigator.clipboard.writeText(desc);
                       toast.success('Descrição copiada!');
                     }}
                   >
                     <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Copiar</span>
                   </Button>
+                )}
+              </div>
+              {loadingDetails ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="ml-2 text-sm text-muted-foreground">Carregando descrição...</span>
                 </div>
+              ) : (fullProduct?.description || product.description) ? (
                 <div className="bg-muted/30 rounded-lg p-4 border border-border">
                   <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed select-text">
-                    {product.description}
+                    {fullProduct?.description || product.description}
                   </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="py-8 text-center">
+                  <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma descrição disponível</p>
+                </div>
+              )}
+            </div>
 
             {/* Movement History Section - Full Width */}
             <div className="mt-6 bg-card rounded-xl border border-border p-4 sm:p-6">
