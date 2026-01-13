@@ -516,12 +516,28 @@ export function ProductDetailModal({ product, open, onOpenChange, onMarketplaceU
             {/* Description Section - Full Width */}
             {product.description && (
               <div className="mt-6 bg-card rounded-xl border border-border p-4 sm:p-6">
-                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" />
-                  Descrição do Produto
-                </h3>
-                <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap leading-relaxed">
-                  {product.description}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    Descrição do Produto
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 h-7 sm:h-8 text-xs"
+                    onClick={() => {
+                      navigator.clipboard.writeText(product.description);
+                      toast.success('Descrição copiada!');
+                    }}
+                  >
+                    <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Copiar</span>
+                  </Button>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                  <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed select-text">
+                    {product.description}
+                  </div>
                 </div>
               </div>
             )}
