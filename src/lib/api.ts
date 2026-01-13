@@ -485,21 +485,41 @@ class ApiService {
 
   async getProductDetail(id: string): Promise<Product | undefined> {
     const config = this.getConfig();
-    
+
     if (!config?.baseUrl || !config?.token) {
       return undefined;
     }
 
-    try {
-      const data = await this.fetchWithAuth(`/catalog/products/${id}`);
-      
-      // Handle response format
-      const product = data?.data || data?.product || data;
-      
-      if (product) {
-        return this.transformWedropProduct(product);
+    const tryFetch = async (endpoint: string) => {
+      try {
+        return await this.fetchWithAuth(endpoint);
+      } catch {
+        return null;
       }
-      return undefined;
+    };
+
+    try {
+      // The /catalog list endpoint does not include extraInfo.description.
+      // We must call a product detail endpoint; the exact path may vary by API version.
+      const data =
+        (await tryFetch(`/catalog/products/${id}`)) ??
+        (await tryFetch(`/products/${id}`)) ??
+        (await tryFetch(`/catalog/${id}`)) ??
+        (await tryFetch(`/catalog/product/${id}`));
+
+      if (!data) return undefined;
+
+      // Handle multiple response formats
+      // - { data: {...} }
+      // - { product: {...} }
+      // - { product: {...}, extraInfo: {...} }
+      const root: any = data?.data ?? data;
+
+      const rawProduct: any = root?.product ? { ...root.product, extraInfo: root.extraInfo ?? root.product.extraInfo } : root;
+
+      if (!rawProduct) return undefined;
+
+      return this.transformWedropProduct(rawProduct);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching product:', error);
