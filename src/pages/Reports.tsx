@@ -52,53 +52,33 @@ export default function Reports() {
   const [periodFilter, setPeriodFilter] = useState<string>('7');
 
   const loadData = useCallback(async () => {
-    // Check if cached data is available for instant display
-    const cachedProducts = apiService.getCachedProducts();
+    setLoading(true);
     
-    if (cachedProducts && cachedProducts.length > 0) {
-      // Use cached data immediately
-      setProducts(cachedProducts);
-      setTotalProductsFromApi(cachedProducts.length);
-      setLoading(false);
+    try {
+      // First get the real total from API
+      const stats = await apiService.getDashboardStats();
+      setTotalProductsFromApi(stats.totalProducts);
       
-      // Load categories, suppliers and snapshots in background
-      Promise.all([
+      // Then load ALL products in parallel with filters and snapshots
+      const [allProducts, cats, supps] = await Promise.all([
+        apiService.getAllProductsForStats(),
         apiService.getCategories(),
         apiService.getSuppliers(),
-        loadSnapshots(),
-      ]).then(([cats, supps]) => {
-        setCategories(cats);
-        setSuppliers(supps);
-        setLastUpdate(new Date());
-      });
+      ]);
       
-      // Refresh products in background
-      apiService.getAllProductsForStats().then(freshProducts => {
-        setProducts(freshProducts);
-        setTotalProductsFromApi(freshProducts.length);
-      });
-    } else {
-      // No cache, load from API
-      setLoading(true);
-      try {
-        const stats = await apiService.getDashboardStats();
-        setTotalProductsFromApi(stats.totalProducts);
-        
-        const [allProducts, cats, supps] = await Promise.all([
-          apiService.getAllProductsForStats(),
-          apiService.getCategories(),
-          apiService.getSuppliers(),
-        ]);
-        
-        setProducts(allProducts);
-        setCategories(cats);
-        setSuppliers(supps);
-        
-        await loadSnapshots();
-        setLastUpdate(new Date());
-      } finally {
-        setLoading(false);
-      }
+      // Update with actual loaded products
+      setProducts(allProducts);
+      // Use the larger value between API total and actual loaded products
+      setTotalProductsFromApi(Math.max(stats.totalProducts, allProducts.length));
+      setCategories(cats);
+      setSuppliers(supps);
+      
+      await loadSnapshots();
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Error loading reports data:', error);
+    } finally {
+      setLoading(false);
     }
   }, [periodFilter]);
 

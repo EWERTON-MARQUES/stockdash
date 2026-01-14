@@ -34,7 +34,6 @@ const menuItems: MenuItem[] = [
     icon: DollarSign,
     label: 'Financeiro',
     submenu: [
-      { icon: Wallet, label: 'Geral', path: '/financeiro' },
       { icon: User, label: 'Carteira PF', path: '/financeiro/pf' },
       { icon: Building2, label: 'Carteira PJ', path: '/financeiro/pj' },
     ]
